@@ -140,12 +140,13 @@ def package(run, checkout, request):
     if submodules(checkout) != request["submodules"]:
         raise RuntimeError("Build changed pinned submodules")
     reports = [file_record(staging / "reports" / name, staging)
-               for name in ["timing_summary.rpt", "utilization.rpt", "drc.rpt"]]
+               for name in ["timing_summary.rpt", "utilization.rpt", "drc.rpt", "ip_cache_usage.tsv"]]
     manifest = {
         "schema_version": 1, "repository": "SiririComun/hw-acoustic-camera",
         "source_commit": request["source_commit"], "source_clean": True,
         "submodules": request["submodules"], "build_run_id": request["build_run_id"],
         "generated_output_exclusions": request["generated_output_exclusions"],
+        "ip_cache": request["ip_cache"],
         "built_at_utc": utc(), "vivado_version_observed": receipt["vivado_version"],
         "board": "pynq_z2", "part": receipt["part"], "top": receipt["top"],
         "interface_id": "legacy-xadc-reference/1", "build_id_128": None,
@@ -194,10 +195,21 @@ def build(args):
     request = {"source_commit": commit, "source_clean": True, "submodules": modules,
                "build_run_id": identifier, "started_at_utc": utc(),
                "expected_vivado_version": "2024.2.2"}
+    cache = None if args.clean_build else Path(args.ip_cache_dir or builds / "ip-cache").expanduser().resolve()
+    if cache is not None:
+        if cache == repo or inside(cache, repo):
+            raise RuntimeError("Shared IP cache must be outside the source repository")
+        cache.mkdir(parents=True, exist_ok=True)
+    request["ip_cache"] = {"mode": "fresh_local" if cache is None else "shared",
+                           "path": None if cache is None else str(cache)}
     request["generated_output_exclusions"] = ["Hog/Tcl/NA/ps7_summary.html"]
     write_json(run / "build-request.json", request)
     env = {**os.environ, "PATH": str(vivado.parent) + os.pathsep + os.environ.get("PATH", ""),
            "GIT_TERMINAL_PROMPT": "0"}
+    # This variable is controlled by the wrapper, including clean builds.
+    env.pop("ACOUSTIC_CAMERA_IP_CACHE", None)
+    if cache is not None:
+        env["ACOUSTIC_CAMERA_IP_CACHE"] = str(cache)
     try:
         version = subprocess.run([str(vivado), "-version"], cwd=str(run), env=env,
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
@@ -255,6 +267,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--builds-dir", default=str(repo.parent / "builds"))
     parser.add_argument("--vivado", default="vivado", help="Vivado launcher path or executable name")
+    cache_options = parser.add_mutually_exclusive_group()
+    cache_options.add_argument("--ip-cache-dir", help="Shared native Vivado IP cache (default: builds-dir/ip-cache)")
+    cache_options.add_argument("--clean-build", action="store_true",
+                               help="Use only a new project-local cache; do not reuse the shared cache")
     args = parser.parse_args()
     try:
         build(args)

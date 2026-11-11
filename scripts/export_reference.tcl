@@ -33,6 +33,14 @@ proc export_reference {} {
         -file [file join $reports_dir timing_summary.rpt]
     report_utilization -file [file join $reports_dir utilization.rpt]
     report_drc -file [file join $reports_dir drc.rpt]
+    set cache_report [open [file join $reports_dir ip_cache_usage.tsv] {WRONLY CREAT EXCL}]
+    puts $cache_report "ip\tcache_used\tmatching_entry"
+    foreach ip [get_ips -all -quiet] {
+        set used [config_ip_cache -cache_was_used $ip]
+        set match [config_ip_cache -cache_has_match $ip]
+        puts $cache_report "${ip}\t${used}\t${match}"
+    }
+    close $cache_report
     # Root BD handoff generated in this fresh checkout. Hierarchical XSAs may
     # contain only internal SmartConnect HWH files, not the overlay handoff.
     set bd_files [get_files -all -quiet */xadc.bd]

@@ -2,6 +2,15 @@
 # Hog Post-Creation Hook & Vivado GUI Custom Commands (PDF & SVG Exporters)
 # ==============================================================================
 
+# Native OOC cache matches tool/part/IP configuration; Vivado rebuilds misses.
+# Configure before regenerating the final BD output products.
+if {[info exists ::env(ACOUSTIC_CAMERA_IP_CACHE)]} {
+    set shared_cache [file normalize $::env(ACOUSTIC_CAMERA_IP_CACHE)]
+    if {![file isdirectory $shared_cache]} { error "Shared IP cache directory is missing" }
+    config_ip_cache -use_cache_location $shared_cache
+    puts "Acoustic camera: shared IP cache $shared_cache"
+}
+
 source [file join [file dirname [info script]] pin-reference-bd.tcl]
 
 # ------------------------------------------------------------------------------

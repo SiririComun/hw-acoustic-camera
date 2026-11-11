@@ -7,7 +7,7 @@ Preparado en el paso 1.3 (2026-11-10). El flujo está en revisión durante 1.4; 
 - Python 3.8+ y Git; el wrapper solo usa la biblioteca estándar.
 - Vivado **2024.2.2** disponible en PATH o indicado con `--vivado`, con sus licencias/IP y entorno preparado.
 - Repositorio y submódulos inicializados, en los commits registrados y sin cambios ni archivos sin seguimiento. Los cambios de este paso deben estar comprometidos antes de construir.
-- Espacio para una copia Git independiente, sus submódulos y las salidas Vivado por ejecución. No se reutiliza una implementación anterior.
+- Espacio para una copia Git independiente, sus submódulos y las salidas Vivado por ejecución. No se reutiliza una implementación anterior. Por defecto se reutiliza síntesis OOC de IP mediante caché nativa compartida.
 - `HOG_EXTERNAL_PATH` y `HOG_IP_PATH` sin definir o vacíos: este primer flujo rechaza dependencias de diseño externas o cachés de IP no incluidas en su procedencia.
 
 ## Comando para el paso 1.4 — no ejecutado en 1.3
@@ -103,3 +103,11 @@ Los intentos anteriores se conservan con su causa; nunca se usan como fuente de 
 La implementación anterior produjo WNS −6.577 ns a 100 MHz en el promedio de `axis_decimator`. Se sustituye la división combinacional por multiplicación recíproca y corrección exacta, en tres etapas adicionales para M=10/20/50; M=1 conserva su camino. No cambia la división entera, el orden de canales, los puertos ni el mapa de registros. El cambio de modo cancela cualquier resultado en curso. Su aceptación depende de la nueva implementación y los informes de timing.
 
 El XSA observado contiene dos HWH internos SmartConnect y no contiene el HWH raíz. El empaquetado registra por separado el BIT implementado y el HWH raíz recién generado; exige la ruta exacta dentro del clon aislado y que el HWH no sea un archivo versionado histórico.
+
+## Reutilización de síntesis IP
+
+Por defecto se usa `../builds/ip-cache`, fuera de las fuentes. `--ip-cache-dir /ruta/cache` permite elegir otra ubicación. Vivado compara su configuración y reutiliza resultados OOC compatibles; una IP modificada o sin entrada compatible se vuelve a sintetizar. No se promete que todas las IP sean elegibles. La síntesis principal, implementación y BIT se generan para la ejecución actual. Esto no es implementación incremental.
+
+El hook aplica `config_ip_cache -use_cache_location` antes de regenerar los productos finales del BD. Request/manifiesto registran el modo y la ubicación; `reports/ip_cache_usage.tsv` registra el uso por IP según Vivado. No editar manualmente las entradas de caché. Si se sospecha un problema, ejecutar `--clean-build`: crea un clon y caché local nuevos, sin leer la caché compartida ni borrarla.
+
+La primera caché compartida se inicializó desde la caché nativa de la construcción correcta `20261111T144100Z-a659fb26b985-1d29bc5c`; la evidencia externa registra el origen. Las siguientes ejecuciones la amplían automáticamente.
