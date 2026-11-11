@@ -1,4 +1,10 @@
-# HW XADC DMA Overlays
+# HW Acoustic Camera
+
+Proyecto nuevo para PYNQ-Z2, preparado desde la referencia XADC auditada. En el paso 1.3 se adapta la infraestructura de construcción; todavía no se ha construido ni probado este proyecto nuevo. La adquisición PDM de cuatro micrófonos pertenece a fases posteriores.
+
+Procedimiento vigente: [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md). El wrapper crea una ejecución aislada y prepara BIT/HWH desde un mismo XSA, con manifiesto de procedencia. Su primera ejecución con Vivado corresponde a 1.4. Los comandos, badges, resultados y releases originales que siguen se conservan como documentación heredada; no acreditan resultados ni releases del proyecto nuevo.
+
+## Documentación heredada de la referencia XADC
 
 [![Hog Managed](https://img.shields.io/badge/HDL_Management-Hog-blue.svg)](https://cern.ch/hog)
 [![Target Board](https://img.shields.io/badge/Board-PYNQ--Z2-orange.svg)](https://tul.com.tw/ProductsPYNQ-Z2.html)

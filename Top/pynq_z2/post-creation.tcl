@@ -92,7 +92,8 @@ if {[info commands create_gui_custom_command] ne ""} {
 }
 
 # ------------------------------------------------------------------------------
-# 4. Run immediately on project open if in GUI mode
+# 4. Keep diagram exports explicit: unattended CREATE must not change tracked
+#    context/xadc.pdf or docs/images/xadc_bd.svg in the source snapshot.
 # ------------------------------------------------------------------------------
-catch { eval $export_pdf_cmd }
-catch { eval $export_svg_cmd }
+send_msg_id "AcousticCamera-2" "INFO" \
+    "Diagram exporters are available as GUI commands; no automatic source-file exports."

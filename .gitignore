@@ -102,8 +102,6 @@ _info
 **.qpg
 **.qtl
 
-cat << 'EOF' >> .gitignore
-
 # Ignore standard Vivado logs and workspace folders
 vivado.log
 vivado.jou
@@ -111,7 +109,6 @@ vivado.jou
 Projects/
 SimulationLib/
 bin/
-EOF
 bd/ui/
 *.log
 *.jou
@@ -131,3 +128,12 @@ src/bd/*.bmj
 src/bd/*.bxml
 src/bd/*_bmstub.v
 src/bd/*_ooc.xdc
+
+# Selected release files; other bin outputs remain ignored. Already tracked
+# legacy BIT/HWH are references, never inputs of scripts/build_reference.py.
+!/bin/
+/bin/*
+!/bin/pynq_z2.bit
+!/bin/pynq_z2.hwh
+!/bin/build-manifest.json
+/builds/
