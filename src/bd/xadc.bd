@@ -1220,7 +1220,7 @@
             "value": "0"
           },
           "PCW_M_AXI_GP0_FREQMHZ": {
-            "value": "10"
+            "value": "100"
           },
           "PCW_M_AXI_GP0_ID_WIDTH": {
             "value": "12"
@@ -1352,10 +1352,10 @@
             "value": "0.092"
           },
           "PCW_PACKAGE_DDR_DQS_TO_CLK_DELAY_0": {
-            "value": "-0.051"
+            "value": "0.040"
           },
           "PCW_PACKAGE_DDR_DQS_TO_CLK_DELAY_1": {
-            "value": "-0.006"
+            "value": "0.058"
           },
           "PCW_PACKAGE_DDR_DQS_TO_CLK_DELAY_2": {
             "value": "-0.009"
@@ -1691,10 +1691,10 @@
             "value": "160"
           },
           "PCW_UIPARAM_DDR_DQS_TO_CLK_DELAY_0": {
-            "value": "-0.051"
+            "value": "0.040"
           },
           "PCW_UIPARAM_DDR_DQS_TO_CLK_DELAY_1": {
-            "value": "-0.006"
+            "value": "0.058"
           },
           "PCW_UIPARAM_DDR_DQS_TO_CLK_DELAY_2": {
             "value": "-0.009"
@@ -2110,7 +2110,7 @@
         "vlnv": "xilinx.com:ip:smartconnect:1.0",
         "ip_revision": "26",
         "xci_name": "xadc_axi_smc_0_0",
-        "xci_path": "ip/xadc_axi_smc_0_0_1/xadc_axi_smc_0_0.xci",
+        "xci_path": "ip/xadc_axi_smc_0_0/xadc_axi_smc_0_0.xci",
         "inst_hier_path": "axi_smc_0",
         "parameters": {
           "NUM_MI": {
@@ -2573,7 +2573,7 @@
         "vlnv": "xilinx.com:ip:axis_subset_converter:1.1",
         "ip_revision": "34",
         "xci_name": "xadc_axis_subset_converter_1_0",
-        "xci_path": "ip/xadc_axis_subset_converter_1_0_1/xadc_axis_subset_converter_1_0.xci",
+        "xci_path": "ip/xadc_axis_subset_converter_1_0/xadc_axis_subset_converter_1_0.xci",
         "inst_hier_path": "axis_subset_converter_1",
         "parameters": {
           "M_HAS_TKEEP": {
@@ -2642,7 +2642,7 @@
         "vlnv": "xilinx.com:ip:smartconnect:1.0",
         "ip_revision": "26",
         "xci_name": "xadc_axi_smc_1_0",
-        "xci_path": "ip/xadc_axi_smc_1_0_1/xadc_axi_smc_1_0.xci",
+        "xci_path": "ip/xadc_axi_smc_1_0/xadc_axi_smc_1_0.xci",
         "inst_hier_path": "axi_smc_1",
         "parameters": {
           "NUM_SI": {
@@ -2734,8 +2734,8 @@
       "axis_trigger_unit_0": {
         "vlnv": "xilinx.com:module_ref:axis_trigger_unit:1.0",
         "ip_revision": "1",
-        "xci_name": "xadc_axis_trigger_unit_0_1",
-        "xci_path": "ip/xadc_axis_trigger_unit_0_1/xadc_axis_trigger_unit_0_1.xci",
+        "xci_name": "xadc_axis_trigger_unit_0_0",
+        "xci_path": "ip/xadc_axis_trigger_unit_0_0/xadc_axis_trigger_unit_0_0.xci",
         "inst_hier_path": "axis_trigger_unit_0",
         "reference_info": {
           "ref_type": "hdl",
@@ -3823,6 +3823,9 @@
           "M_HAS_TLAST": {
             "value": "1"
           },
+          "M_HAS_TREADY": {
+            "value": "1"
+          },
           "M_HAS_TSTRB": {
             "value": "0"
           },
@@ -3842,6 +3845,9 @@
             "value": "0"
           },
           "S_HAS_TLAST": {
+            "value": "1"
+          },
+          "S_HAS_TREADY": {
             "value": "1"
           },
           "S_HAS_TSTRB": {
@@ -4333,6 +4339,9 @@
           "HAS_TLAST": {
             "value": "1"
           },
+          "HAS_TREADY": {
+            "value": "1"
+          },
           "HAS_TSTRB": {
             "value": "0"
           },
@@ -4369,8 +4378,8 @@
       "xfft_1": {
         "vlnv": "xilinx.com:ip:xfft:9.1",
         "ip_revision": "13",
-        "xci_name": "xadc_xfft_1_1",
-        "xci_path": "ip/xadc_xfft_1_1/xadc_xfft_1_1.xci",
+        "xci_name": "xadc_xfft_1_0",
+        "xci_path": "ip/xadc_xfft_1_0/xadc_xfft_1_0.xci",
         "inst_hier_path": "xfft_1",
         "parameters": {
           "implementation_options": {
@@ -4412,6 +4421,9 @@
           "M_HAS_TLAST": {
             "value": "1"
           },
+          "M_HAS_TREADY": {
+            "value": "1"
+          },
           "M_HAS_TSTRB": {
             "value": "0"
           },
@@ -4431,6 +4443,9 @@
             "value": "0"
           },
           "S_HAS_TLAST": {
+            "value": "1"
+          },
+          "S_HAS_TREADY": {
             "value": "1"
           },
           "S_HAS_TSTRB": {
@@ -4512,8 +4527,8 @@
       "axis_broadcaster_cfg": {
         "vlnv": "xilinx.com:ip:axis_broadcaster:1.1",
         "ip_revision": "33",
-        "xci_name": "xadc_axis_broadcaster_2_0",
-        "xci_path": "ip/xadc_axis_broadcaster_2_0/xadc_axis_broadcaster_2_0.xci",
+        "xci_name": "xadc_axis_broadcaster_cfg_0",
+        "xci_path": "ip/xadc_axis_broadcaster_cfg_0/xadc_axis_broadcaster_cfg_0.xci",
         "inst_hier_path": "axis_broadcaster_cfg",
         "parameters": {
           "HAS_TKEEP": {
@@ -4521,6 +4536,9 @@
           },
           "HAS_TLAST": {
             "value": "0"
+          },
+          "HAS_TREADY": {
+            "value": "1"
           },
           "HAS_TSTRB": {
             "value": "0"
@@ -4558,8 +4576,8 @@
       "axis_subset_converter_cfg": {
         "vlnv": "xilinx.com:ip:axis_subset_converter:1.1",
         "ip_revision": "34",
-        "xci_name": "xadc_axis_subset_converter_4_0",
-        "xci_path": "ip/xadc_axis_subset_converter_4_0/xadc_axis_subset_converter_4_0.xci",
+        "xci_name": "xadc_axis_subset_converter_cfg_0",
+        "xci_path": "ip/xadc_axis_subset_converter_cfg_0/xadc_axis_subset_converter_cfg_0.xci",
         "inst_hier_path": "axis_subset_converter_cfg",
         "parameters": {
           "M_HAS_TKEEP": {
@@ -4567,6 +4585,9 @@
           },
           "M_HAS_TLAST": {
             "value": "0"
+          },
+          "M_HAS_TREADY": {
+            "value": "1"
           },
           "M_HAS_TSTRB": {
             "value": "0"
@@ -4588,6 +4609,9 @@
           },
           "S_HAS_TLAST": {
             "value": "0"
+          },
+          "S_HAS_TREADY": {
+            "value": "1"
           },
           "S_HAS_TSTRB": {
             "value": "0"

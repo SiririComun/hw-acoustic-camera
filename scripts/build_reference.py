@@ -137,6 +137,7 @@ def package(run, checkout, request):
         "schema_version": 1, "repository": "SiririComun/hw-acoustic-camera",
         "source_commit": request["source_commit"], "source_clean": True,
         "submodules": request["submodules"], "build_run_id": request["build_run_id"],
+        "generated_output_exclusions": request["generated_output_exclusions"],
         "built_at_utc": utc(), "vivado_version_observed": receipt["vivado_version"],
         "board": "pynq_z2", "part": receipt["part"], "top": receipt["top"],
         "interface_id": "legacy-xadc-reference/1", "build_id_128": None,
@@ -185,6 +186,7 @@ def build(args):
     request = {"source_commit": commit, "source_clean": True, "submodules": modules,
                "build_run_id": identifier, "started_at_utc": utc(),
                "expected_vivado_version": "2024.2.2"}
+    request["generated_output_exclusions"] = ["Hog/Tcl/NA/ps7_summary.html"]
     write_json(run / "build-request.json", request)
     env = {**os.environ, "PATH": str(vivado.parent) + os.pathsep + os.environ.get("PATH", ""),
            "GIT_TERMINAL_PROMPT": "0"}
@@ -208,12 +210,20 @@ def build(args):
             git(target, "checkout", "--detach", module["commit"])
         git(checkout, "submodule", "init")
         git(checkout, "submodule", "absorbgitdirs")
+        # The PS7 IP writes its HTML summary relative to Hog's Tcl cwd. This
+        # exact generated report is not an HDL/config input; keep the exception
+        # explicit and local, without modifying the Hog submodule or ignoring
+        # any tracked changes. All other untracked source changes still fail.
+        hog_git = Path(git(checkout / "Hog", "rev-parse", "--absolute-git-dir").strip())
+        with (hog_git / "info/exclude").open("a") as stream:
+            stream.write("\n/Tcl/NA/ps7_summary.html\n")
         clean(checkout)
         if submodules(checkout) != modules:
             raise RuntimeError("Isolated clone does not match pinned modules")
         for directive in ["CREATE", "WORK"]:
             run_logged([checkout / "Hog/Do", directive, "pynq_z2"], checkout,
                        run / (directive.lower() + ".log"), env)
+            clean(checkout)
         (run / "export").mkdir()
         (run / ".artifacts-stage/reports").mkdir(parents=True)
         run_logged([vivado, "-mode", "batch", "-source", checkout / "scripts/export_reference.tcl",

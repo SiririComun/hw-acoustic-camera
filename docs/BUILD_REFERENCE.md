@@ -88,3 +88,12 @@ Conservar XSA, informes y logs como evidencia local de la ejecución. Antes de p
 La documentación oficial describe `write_hw_platform` como exportación del diseño y `-include_bit` como inclusión de su bitstream: [AMD UG835, write_hw_platform](https://docs.amd.com/r/2024.1-English/ug835-vivado-tcl-commands/write_hw_platform). La aplicación exacta a Vivado 2024.2.2 y al BD de este proyecto se comprobará en 1.4, especialmente propiedades de runs y contenido del XSA. Una composición de XSA inesperada debe producir error, no una elección silenciosa entre handoffs.
 
 En 1.3 solo se preparó y revisó estáticamente el código; no se ejecutaron tests funcionales, Hog, Vivado ni esta herramienta de construcción.
+
+## Correcciones encontradas al ejecutar 1.4
+
+- El banner real comienza por `vivado` en minúsculas; la detección de versión ahora ignora mayúsculas/minúsculas.
+- Al regenerar únicamente desde el BD, se perdían los modos manuales de los conversores AXI guardados en XCI no versionados. `pin-reference-bd.tcl` reaplica los anchos, TREADY y remapeos previstos en la referencia, valida y regenera antes de WORK. El BD versionado se normalizó con Vivado manteniendo conexiones, direccionamiento y jerarquía.
+- La frecuencia de metadatos GP0 se alineó a sus 100 MHz. Los retardos DDR activos de las lanes 0/1 se alinearon a `0.040`/`0.058`, tanto PACKAGE como UIPARAM, de la [referencia oficial PYNQ-Z2 v3.1](https://github.com/Xilinx/PYNQ/blob/v3.1/boards/Pynq-Z2/petalinux_bsp/hardware_project/pynqz2.tcl). Las lanes 2/3 mantienen sus valores oficiales negativos: no se usan con el bus DDR de 16 bits. Esto no sustituye la comprobación de placa.
+- El IP PS7 escribe `Hog/Tcl/NA/ps7_summary.html`. Solo esa salida HTML conocida se excluye localmente en el clon de construcción, y se declara en request/manifiesto; no se cambió Hog ni se ignoran cambios versionados. El wrapper comprueba limpieza después de CREATE y WORK para detectar reescrituras antes de empaquetar.
+
+Los intentos anteriores se conservan con su causa; nunca se usan como fuente de artefactos del intento corregido.

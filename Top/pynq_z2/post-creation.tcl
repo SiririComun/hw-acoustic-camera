@@ -2,6 +2,8 @@
 # Hog Post-Creation Hook & Vivado GUI Custom Commands (PDF & SVG Exporters)
 # ==============================================================================
 
+source [file join [file dirname [info script]] pin-reference-bd.tcl]
+
 # ------------------------------------------------------------------------------
 # 1. Command: Export BD to context/*.pdf
 # ------------------------------------------------------------------------------
