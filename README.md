@@ -1,3 +1,10 @@
+## Candidato de distribución del proyecto nuevo
+
+El paso 1.4 produjo la referencia XADC con timing satisfecho a 100 MHz.
+El candidato `v0.1.0-rc.1` se publica mediante el flujo descrito en
+[docs/RELEASING.md](docs/RELEASING.md), sin reconstruir el bitstream.
+La validación en placa y el SW nuevo siguen pendientes; PDM no está implementado.
+
 # HW Acoustic Camera
 
 Proyecto nuevo para PYNQ-Z2, preparado desde la referencia XADC auditada. En el paso 1.3 se adapta la infraestructura de construcción; todavía no se ha construido ni probado este proyecto nuevo. La adquisición PDM de cuatro micrófonos pertenece a fases posteriores.

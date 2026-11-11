@@ -79,7 +79,7 @@ El flujo verifica procedencia por ejecución y contenido, no promete binarios id
 
 El wrapper no modifica `bin/`, no crea tags, no sube archivos, no programa FPGA y no instala software. Los BIT/HWH ya versionados en `bin/` siguen siendo referencias históricas, nunca entradas de la nueva construcción.
 
-En 1.5 se seleccionará una construcción aceptada y se preparará el commit de empaquetado R con `bin/pynq_z2.bit`, `bin/pynq_z2.hwh` y `bin/build-manifest.json`. Las fuentes, scripts, BD, restricciones y submódulos entre S y R deben seguir iguales. `.gitignore` deja visibles esos tres nombres y mantiene ignoradas las demás salidas. El workflow de publicación todavía es el heredado y requiere adaptación en 1.5.
+En 1.5 se seleccionará una construcción aceptada y se preparará el commit de empaquetado R con `bin/pynq_z2.bit`, `bin/pynq_z2.hwh` y `bin/build-manifest.json`, el resumen `implementation-review.json` y checksums. Las fuentes, scripts, BD, restricciones y submódulos entre S y R deben seguir iguales. `.gitignore` deja visibles esos tres nombres y mantiene ignoradas las demás salidas. El workflow adaptado en 1.5 valida fuentes y hashes; véase [RELEASING.md](RELEASING.md).
 
 Conservar XSA, informes y logs como evidencia local de la ejecución. Antes de publicar logs o datos del entorno, revisar su contenido; el wrapper no vuelca variables ni guarda credenciales en el manifiesto.
 

@@ -137,3 +137,6 @@ src/bd/*_ooc.xdc
 !/bin/pynq_z2.hwh
 !/bin/build-manifest.json
 /builds/
+
+!/bin/implementation-review.json
+!/bin/SHA256SUMS.txt
