@@ -1,13 +1,23 @@
-## Candidato de distribución del proyecto nuevo
+## Reloj y control PDM - fase 2
+
+El diseño separado `pdm_clock_control` implementa reloj PDM nominal de 2,4 MHz
+y control AXI-Lite; DATA todavía no se captura. Construcción revisada con timing
+satisfecho; la ejecución de cierre en placa está preparada y pendiente de sudo.
+Detalle y artefactos identificados en [docs/PHASE2_CLOCK_CONTROL.md](docs/PHASE2_CLOCK_CONTROL.md).
+
+## Referencia XADC de fase 1
 
 El paso 1.4 produjo la referencia XADC con timing satisfecho a 100 MHz.
 El candidato [`v0.1.0-rc.2`](https://github.com/SiririComun/hw-acoustic-camera/releases/tag/v0.1.0-rc.2) está publicado mediante el flujo descrito en
 [docs/RELEASING.md](docs/RELEASING.md), sin reconstruir el bitstream.
-La validación en placa y el SW nuevo siguen pendientes; PDM no está implementado.
+La referencia XADC fue instalada y cargada en placa durante la fase 1. El diseño
+PDM separado de fase 2 añade reloj/control; la adquisición PDM sigue pendiente.
 
 # HW Acoustic Camera
 
-Proyecto nuevo para PYNQ-Z2, preparado desde la referencia XADC auditada. En el paso 1.3 se adapta la infraestructura de construcción; todavía no se ha construido ni probado este proyecto nuevo. La adquisición PDM de cuatro micrófonos pertenece a fases posteriores.
+Proyecto para PYNQ-Z2 preparado desde la referencia XADC auditada. La fase 1 cerró
+la construcción y distribución de esa referencia. La adquisición PDM de cuatro
+micrófonos pertenece a las fases posteriores al hito de reloj/control.
 
 Procedimiento vigente: [docs/BUILD_REFERENCE.md](docs/BUILD_REFERENCE.md). El wrapper crea una ejecución aislada y prepara el BIT del XSA implementado y el HWH raíz del mismo clon recién construido, con manifiesto de procedencia. Su primera ejecución con Vivado corresponde a 1.4. Los comandos, badges, resultados y releases originales que siguen se conservan como documentación heredada; no acreditan resultados ni releases del proyecto nuevo.
 
