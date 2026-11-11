@@ -4,3 +4,5 @@ src/hdl/axis_trigger_unit.vhd 93
 src/hdl/axis_decimator.vhd 93
 src/hdl/axis_channel_demux.vhd 93
 src/hdl/axis_spectral_mask.vhd 93
+src/hdl/acoustic_pdm_clock.vhd 93
+src/hdl/acoustic_pdm_clock_control.vhd 93
