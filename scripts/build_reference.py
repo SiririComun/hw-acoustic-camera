@@ -96,7 +96,7 @@ def package(run, checkout, request):
         if key in receipt:
             raise RuntimeError("Duplicate export receipt field")
         receipt[key] = value
-    required = {"project_file", "bit_file", "part", "top", "implementation_status", "vivado_version"}
+    required = {"project_file", "bit_file", "hwh_file", "part", "top", "implementation_status", "vivado_version"}
     if set(receipt) != required:
         raise RuntimeError("Unexpected export receipt fields")
     project = checkout / "Projects/pynq_z2/pynq_z2.xpr"
@@ -112,7 +112,7 @@ def package(run, checkout, request):
         raise RuntimeError("Bitstream is outside the isolated generated project")
     archive = export / "reference.xsa"
     with zipfile.ZipFile(archive) as xsa:
-        for suffix, output in [(".bit", "pynq_z2.bit"), (".hwh", "pynq_z2.hwh")]:
+        for suffix, output in [(".bit", "pynq_z2.bit")]:
             members = [info for info in xsa.infolist()
                        if not info.is_dir() and info.filename.lower().endswith(suffix)]
             if len(members) != 1 or not 0 < members[0].file_size <= 128 * 1024 * 1024:
@@ -125,7 +125,15 @@ def package(run, checkout, request):
     produced = file_record(original_bit, original_bit.parent)
     if (extracted["sha256"], extracted["size_bytes"]) != (produced["sha256"], produced["size_bytes"]):
         raise RuntimeError("XSA bitstream differs from completed implementation")
-    ET.parse(staging / "pynq_z2.hwh")
+    generated_hwh = checkout / "src/bd/hw_handoff/xadc.hwh"
+    if Path(receipt["hwh_file"]).resolve() != generated_hwh.resolve():
+        raise RuntimeError("HWH is not the isolated root BD handoff")
+    if git(checkout, "ls-files", "--", "src/bd/hw_handoff/xadc.hwh").strip():
+        raise RuntimeError("HWH must be generated, not a tracked historical artifact")
+    if not generated_hwh.is_file() or not 0 < generated_hwh.stat().st_size <= 128 * 1024 * 1024:
+        raise RuntimeError("Root BD HWH missing, empty or oversized")
+    ET.parse(generated_hwh)
+    shutil.copyfile(generated_hwh, staging / "pynq_z2.hwh")
     clean(checkout)
     if git(checkout, "rev-parse", "HEAD").strip() != request["source_commit"]:
         raise RuntimeError("Build changed source HEAD")
@@ -143,10 +151,10 @@ def package(run, checkout, request):
         "interface_id": "legacy-xadc-reference/1", "build_id_128": None,
         "implementation_report": {"run_status": receipt["implementation_status"],
                                   "review_status": "not_performed_by_packager", "files": reports},
-        "pair_provenance": {"method": "one implemented XSA with bitstream",
+        "pair_provenance": {"method": "implemented XSA bit and root BD HWH from the same fresh isolated run",
                             "archive": file_record(archive, run),
                             "bit_member": receipt["xsa_member.bit"],
-                            "hwh_member": receipt["xsa_member.hwh"]},
+                            "generated_hwh": file_record(generated_hwh, checkout)},
         "files": [file_record(staging / name, staging)
                   for name in ["pynq_z2.bit", "pynq_z2.hwh"]],
         "physical_validation": "not_run",

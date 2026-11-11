@@ -1,6 +1,6 @@
 # Construcción trazable de la referencia XADC
 
-Preparado en el paso 1.3 (2026-11-10). **El flujo no se ha ejecutado con Vivado todavía.** Su primera construcción y revisión corresponden a 1.4. La adquisición sigue siendo la referencia XADC dual; no se implementa PDM en este cambio.
+Preparado en el paso 1.3 (2026-11-10). El flujo está en revisión durante 1.4; los intentos y resultados se conservan fuera del repositorio. La adquisición sigue siendo la referencia XADC dual; no se implementa PDM en este cambio.
 
 ## Requisitos
 
@@ -34,8 +34,8 @@ La ruta de instalación contiene `2024.2`; se exige que el ejecutable reporte `2
 3. Clonar S y los submódulos desde sus copias locales con `--no-hardlinks`, sin worktrees compartidos ni alternates. Los módulos quedan en sus SHA fijados. No se necesitan credenciales para esta copia local.
 4. Dentro de esa copia, ejecutar `Hog/Do CREATE pynq_z2` y después `Hog/Do WORK pynq_z2`. Hog conserva su ruta convencional `Projects/pynq_z2`; queda dentro de la ejecución aislada, sin modificar el submódulo Hog.
 5. Después de que WORK termine, abrir el `.xpr` generado mediante un proceso Vivado batch separado. Exigir parte/top esperados, `write_bitstream` completado e implementación que no necesite refresh. Abrir `impl_1` y generar informes de timing, utilización y DRC.
-6. Exportar un único `reference.xsa` con `write_hw_platform -fixed -include_bit`. El script Tcl no selecciona ningún HWH de `src/bd/hw_handoff` ni busca archivos antiguos en `bin/`.
-7. Extraer exactamente un BIT y un HWH de ese XSA a nombres fijos `pynq_z2.bit` y `pynq_z2.hwh`. Rechazar archivo vacío, selección ambigua, XML inválido o BIT cuyo hash/tamaño no coincida con el de la implementación terminada.
+6. Exportar un único `reference.xsa` con `write_hw_platform -fixed -include_bit`. El BIT se extrae de ese XSA. El HWH raíz se identifica explícitamente desde el BD del mismo clon recién construido; no se buscan archivos antiguos en `bin/`.
+7. Extraer exactamente un BIT del XSA y copiar el HWH raíz generado en `src/bd/hw_handoff/xadc.hwh` del mismo clon a nombres fijos `pynq_z2.bit` y `pynq_z2.hwh`. Rechazar archivo vacío, selección ambigua, XML inválido o BIT cuyo hash/tamaño no coincida con el de la implementación terminada.
 8. Revalidar HEAD, limpieza y submódulos tanto de la fuente de trabajo como de la copia construida. Crear manifiesto/checksums y promover la carpeta temporal a `artifacts/` únicamente al terminar el empaquetado.
 
 La exportación posterior a WORK evita ejecutar `write_hw_platform` desde el hook mientras `write_bitstream` todavía termina. El hook anterior ya no copia ni reemplaza artefactos. Se conservan los comandos GUI de exportación de diagramas, pero CREATE deja de ejecutarlos automáticamente porque modificaban documentación versionada.
@@ -97,3 +97,9 @@ En 1.3 solo se preparó y revisó estáticamente el código; no se ejecutaron te
 - El IP PS7 escribe `Hog/Tcl/NA/ps7_summary.html`. Solo esa salida HTML conocida se excluye localmente en el clon de construcción, y se declara en request/manifiesto; no se cambió Hog ni se ignoran cambios versionados. El wrapper comprueba limpieza después de CREATE y WORK para detectar reescrituras antes de empaquetar.
 
 Los intentos anteriores se conservan con su causa; nunca se usan como fuente de artefactos del intento corregido.
+
+### Promedio con pipeline
+
+La implementación anterior produjo WNS −6.577 ns a 100 MHz en el promedio de `axis_decimator`. Se sustituye la división combinacional por multiplicación recíproca y corrección exacta, en tres etapas adicionales para M=10/20/50; M=1 conserva su camino. No cambia la división entera, el orden de canales, los puertos ni el mapa de registros. El cambio de modo cancela cualquier resultado en curso. Su aceptación depende de la nueva implementación y los informes de timing.
+
+El XSA observado contiene dos HWH internos SmartConnect y no contiene el HWH raíz. El empaquetado registra por separado el BIT implementado y el HWH raíz recién generado; exige la ruta exacta dentro del clon aislado y que el HWH no sea un archivo versionado histórico.

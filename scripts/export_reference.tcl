@@ -33,10 +33,18 @@ proc export_reference {} {
         -file [file join $reports_dir timing_summary.rpt]
     report_utilization -file [file join $reports_dir utilization.rpt]
     report_drc -file [file join $reports_dir drc.rpt]
-    # Export after implementation. Never search for an HWH in source folders.
+    # Root BD handoff generated in this fresh checkout. Hierarchical XSAs may
+    # contain only internal SmartConnect HWH files, not the overlay handoff.
+    set bd_files [get_files -all -quiet */xadc.bd]
+    if {[llength $bd_files] != 1} { error "Expected one root xadc.bd" }
+    set hwh_file [file normalize [file join [file dirname [lindex $bd_files 0]] hw_handoff xadc.hwh]]
+    if {![file isfile $hwh_file] || [file size $hwh_file] == 0} {
+        error "Fresh root BD handoff is missing"
+    }
+    # Export implemented bitstream and PS platform metadata.
     write_hw_platform -fixed -include_bit $archive
     set out [open $receipt {WRONLY CREAT EXCL}]
-    foreach {key value} [list project_file $project_file bit_file $bit_file \
+    foreach {key value} [list project_file $project_file bit_file $bit_file hwh_file $hwh_file \
             part $part top $top implementation_status $status vivado_version [version -short]] {
         if {[regexp {[\t\r\n]} $value]} { close $out; error "Invalid receipt value" }
         puts $out "${key}\t${value}"

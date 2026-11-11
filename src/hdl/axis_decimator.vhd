@@ -64,7 +64,18 @@ architecture Behavioral of axis_decimator is
     signal avg_ch2_reg         : std_logic_vector(15 downto 0) := (others => '0');
 
     -- Output State Machine (Emits decimated Ch1 then Ch2 sequentially)
-    type t_out_state is (ST_ACCUMULATING, ST_EMIT_CH1, ST_EMIT_CH2);
+    -- Exact unsigned division, pipelined to avoid a long combinational divider.
+    -- M=10/20: shift by 1/2 then divide by 5; M=50: shift by 1
+    -- then divide by 25. Reciprocal underestimation is at most one unit.
+    signal total_ch1, total_ch2 : unsigned(21 downto 0) := (others => '0');
+    signal numerator_ch1, numerator_ch2 : unsigned(20 downto 0) := (others => '0');
+    signal product_ch1, product_ch2 : unsigned(37 downto 0) := (others => '0');
+    signal quotient_ch1, quotient_ch2 : unsigned(15 downto 0) := (others => '0');
+    signal remainder_ch1, remainder_ch2 : unsigned(20 downto 0) := (others => '0');
+    attribute use_dsp : string;
+    attribute use_dsp of product_ch1, product_ch2 : signal is "yes";
+    type t_out_state is (ST_ACCUMULATING, ST_DIV_MULTIPLY,
+                        ST_DIV_REMAINDER, ST_DIV_CORRECT, ST_EMIT_CH1, ST_EMIT_CH2);
     signal out_state           : t_out_state := ST_ACCUMULATING;
 
 begin
@@ -79,6 +90,9 @@ begin
 
     process(aclk)
         variable sample_val : unsigned(15 downto 0);
+        variable n1, n2, q1, q2, scaled1, scaled2 : unsigned(20 downto 0);
+        variable reciprocal : unsigned(16 downto 0);
+        variable divisor : natural range 5 to 25;
         variable is_ch1     : boolean;
         variable is_ch2     : boolean;
         variable m_target   : integer range 1 to 50;
@@ -148,33 +162,13 @@ begin
                                                 avg_ch2_reg <= std_logic_vector(resize(acc_ch2, 16));
                                             end if;
 
-                                        when "01" => -- M = 10 (Audio)
-                                            avg_ch1_reg <= std_logic_vector(resize(acc_ch1 / 10, 16));
+                                        when others => -- M=10,20,50: capture before normalization
+                                            total_ch1 <= resize(acc_ch1, 22);
                                             if is_ch2 then
-                                                avg_ch2_reg <= std_logic_vector(resize((acc_ch2 + sample_val) / 10, 16));
+                                                total_ch2 <= resize(acc_ch2 + sample_val, 22);
                                             else
-                                                avg_ch2_reg <= std_logic_vector(resize(acc_ch2 / 10, 16));
+                                                total_ch2 <= resize(acc_ch2, 22);
                                             end if;
-
-                                        when "10" => -- M = 20 (Speech)
-                                            avg_ch1_reg <= std_logic_vector(resize(acc_ch1 / 20, 16));
-                                            if is_ch2 then
-                                                avg_ch2_reg <= std_logic_vector(resize((acc_ch2 + sample_val) / 20, 16));
-                                            else
-                                                avg_ch2_reg <= std_logic_vector(resize(acc_ch2 / 20, 16));
-                                            end if;
-
-                                        when "11" => -- M = 50 (Deep Bass)
-                                            avg_ch1_reg <= std_logic_vector(resize(acc_ch1 / 50, 16));
-                                            if is_ch2 then
-                                                avg_ch2_reg <= std_logic_vector(resize((acc_ch2 + sample_val) / 50, 16));
-                                            else
-                                                avg_ch2_reg <= std_logic_vector(resize(acc_ch2 / 50, 16));
-                                            end if;
-
-                                        when others =>
-                                            avg_ch1_reg <= std_logic_vector(resize(acc_ch1 / 10, 16));
-                                            avg_ch2_reg <= std_logic_vector(resize(acc_ch2 / 10, 16));
                                     end case;
 
                                     -- Reset accumulators
@@ -183,9 +177,66 @@ begin
                                     count_ch1   <= 0;
                                     count_ch2   <= 0;
 
-                                    out_state   <= ST_EMIT_CH1;
+                                    if decim_sel = "00" then
+                                        out_state <= ST_EMIT_CH1;
+                                    else
+                                        out_state <= ST_DIV_MULTIPLY;
+                                    end if;
                                 end if;
                             end if;
+
+                        when ST_DIV_MULTIPLY =>
+                            if decim_sel = "10" then
+                                n1 := resize(shift_right(total_ch1, 2), 21);
+                                n2 := resize(shift_right(total_ch2, 2), 21);
+                            else
+                                n1 := resize(shift_right(total_ch1, 1), 21);
+                                n2 := resize(shift_right(total_ch2, 1), 21);
+                            end if;
+                            if decim_sel = "11" then
+                                reciprocal := to_unsigned(83886, 17); -- floor(2**21/25)
+                            else
+                                reciprocal := to_unsigned(104857, 17); -- floor(2**19/5)
+                            end if;
+                            numerator_ch1 <= n1;
+                            numerator_ch2 <= n2;
+                            product_ch1 <= n1 * reciprocal;
+                            product_ch2 <= n2 * reciprocal;
+                            out_state <= ST_DIV_REMAINDER;
+
+                        when ST_DIV_REMAINDER =>
+                            if decim_sel = "11" then
+                                q1 := resize(product_ch1(36 downto 21), 21);
+                                q2 := resize(product_ch2(36 downto 21), 21);
+                                scaled1 := shift_left(q1, 4) + shift_left(q1, 3) + q1;
+                                scaled2 := shift_left(q2, 4) + shift_left(q2, 3) + q2;
+                            else
+                                q1 := resize(product_ch1(34 downto 19), 21);
+                                q2 := resize(product_ch2(34 downto 19), 21);
+                                scaled1 := shift_left(q1, 2) + q1;
+                                scaled2 := shift_left(q2, 2) + q2;
+                            end if;
+                            quotient_ch1 <= resize(q1, 16);
+                            quotient_ch2 <= resize(q2, 16);
+                            remainder_ch1 <= numerator_ch1 - scaled1;
+                            remainder_ch2 <= numerator_ch2 - scaled2;
+                            out_state <= ST_DIV_CORRECT;
+
+                        when ST_DIV_CORRECT =>
+                            if decim_sel = "11" then divisor := 25;
+                            else divisor := 5;
+                            end if;
+                            if remainder_ch1 >= divisor then
+                                avg_ch1_reg <= std_logic_vector(quotient_ch1 + 1);
+                            else
+                                avg_ch1_reg <= std_logic_vector(quotient_ch1);
+                            end if;
+                            if remainder_ch2 >= divisor then
+                                avg_ch2_reg <= std_logic_vector(quotient_ch2 + 1);
+                            else
+                                avg_ch2_reg <= std_logic_vector(quotient_ch2);
+                            end if;
+                            out_state <= ST_EMIT_CH1;
 
                         -- ---------------------------------------------------------
                         -- 2. EMIT CHANNEL 1 (A0) FIRST (GUARANTEED PHASE ORDER)
