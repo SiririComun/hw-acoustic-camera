@@ -1,7 +1,7 @@
 ## Candidato de distribución del proyecto nuevo
 
 El paso 1.4 produjo la referencia XADC con timing satisfecho a 100 MHz.
-El candidato `v0.1.0-rc.1` se publica mediante el flujo descrito en
+El candidato [`v0.1.0-rc.2`](https://github.com/SiririComun/hw-acoustic-camera/releases/tag/v0.1.0-rc.2) está publicado mediante el flujo descrito en
 [docs/RELEASING.md](docs/RELEASING.md), sin reconstruir el bitstream.
 La validación en placa y el SW nuevo siguen pendientes; PDM no está implementado.
 

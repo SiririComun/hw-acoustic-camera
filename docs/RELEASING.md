@@ -35,3 +35,14 @@ that manifest's original `not_performed_by_packager` review field.
 
 The existing VHDL syntax workflow now covers `main`, `phase/**` and `feat/**`.
 It is a syntax check, not a functional test or an FPGA implementation run.
+
+## Published candidate
+
+`v0.1.0-rc.2` identifies packaging commit
+`44626ae4934584ca6137f20eb9b384881ff5dbf6`. Its five downloaded assets were
+verified against the local package. Manifest SHA-256:
+`0d372c66a798cedcc4420caf800c612d34c7720a40f1480620c9809d9d421571`.
+
+The earlier `v0.1.0-rc.1` tag is retained without a release: Actions was disabled
+when its push event occurred. After the owner enabled Actions, a new rc.2 tag
+on the same packaging commit triggered publication. No bitstream was rebuilt.
