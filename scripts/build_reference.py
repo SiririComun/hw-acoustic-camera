@@ -192,7 +192,7 @@ def build(args):
         version = subprocess.run([str(vivado), "-version"], cwd=str(run), env=env,
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
         (run / "vivado-version.txt").write_text(version.stdout)
-        match = re.search(r"Vivado\s+v([0-9.]+)", version.stdout)
+        match = re.search(r"Vivado\s+v([0-9.]+)", version.stdout, re.IGNORECASE)
         if not match or match.group(1) != request["expected_vivado_version"]:
             raise RuntimeError("Expected Vivado 2024.2.2; see vivado-version.txt")
         checkout = run / "source"
