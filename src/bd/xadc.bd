@@ -1352,10 +1352,10 @@
             "value": "0.092"
           },
           "PCW_PACKAGE_DDR_DQS_TO_CLK_DELAY_0": {
-            "value": "0.040"
+            "value": "-0.051"
           },
           "PCW_PACKAGE_DDR_DQS_TO_CLK_DELAY_1": {
-            "value": "0.058"
+            "value": "-0.006"
           },
           "PCW_PACKAGE_DDR_DQS_TO_CLK_DELAY_2": {
             "value": "-0.009"
@@ -3864,6 +3864,9 @@
           },
           "S_TUSER_WIDTH": {
             "value": "0"
+          },
+          "TDATA_REMAP": {
+            "value": "tdata[31:0]"
           }
         },
         "interface_ports": {
