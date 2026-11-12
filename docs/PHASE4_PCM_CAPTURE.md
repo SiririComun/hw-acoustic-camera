@@ -1,8 +1,8 @@
 # Phase 4 — four-channel PCM capture
 
-Status: steps 4.1–4.3 complete. The standalone PCM filter is implemented and
-verified in XSim; BD/register/FIFO/DMA integration is next. No phase-4 bitstream
-has been generated. See [PHASE4_PCM_RTL.md](PHASE4_PCM_RTL.md).
+Status: steps 4.1–4.4 complete. The PCM control/filter/FIFO/AXI path passed
+native XSim and the separate DMA BD was validated in Vivado. No phase-4 bitstream
+has been generated. See [PHASE4_PCM_INTEGRATION.md](PHASE4_PCM_INTEGRATION.md).
 
 ## Baseline
 
