@@ -5,6 +5,7 @@ Each invocation snapshots its inputs into a fresh evidence directory. No Vivado
 project, synthesis, bitstream, PYNQ import, network or board operation is used.
 """
 import argparse
+import csv
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -34,19 +35,22 @@ def main():
     hw = Path(__file__).resolve().parents[1]
     workspace = hw.parent
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--suite", choices=("source", "stream"), default="source")
     parser.add_argument("--vivado-bin", type=Path,
                         default=Path("/home/siriricomun/tools/Xilinx/Vivado/2024.2/bin"))
     parser.add_argument("--reference-tool", type=Path,
                         default=workspace / "sw-acoustic-camera/tools/phase3_raw_reference.py")
-    parser.add_argument("--output-root", type=Path,
-                        default=workspace / "evidence/phase-03-step-02")
+    parser.add_argument("--output-root", type=Path)
     args = parser.parse_args()
-    run = args.output_root.resolve() / (datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%SZ-")
+    args.vivado_bin = args.vivado_bin.resolve()
+    step = "3.2" if args.suite == "source" else "3.3"
+    output_root = args.output_root or workspace / "evidence" / ("phase-03-step-02" if args.suite == "source" else "phase-03-step-03")
+    run = output_root.resolve() / (datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%SZ-")
                                         + uuid.uuid4().hex[:8])
     run.mkdir(parents=True, exist_ok=False)
     (run / "source").mkdir()
     print("SIMULATION_RUN=" + str(run), flush=True)
-    metadata = {"phase": 3, "step": "3.2", "status": "running", "scope": "digital_sampler_only",
+    metadata = {"phase": 3, "step": step, "status": "running", "scope": "digital_" + args.suite,
                 "started_at_utc": datetime.now(timezone.utc).isoformat(),
                 "hw_repository": git_info(hw), "inputs": [], "commands": [],
                 "synthesis_run": False, "bitstream_generated": False, "board_accessed": False,
@@ -86,28 +90,34 @@ def main():
         clock = snapshot(hw / "src/hdl/acoustic_pdm_clock.vhd")
         control = snapshot(hw / "src/hdl/acoustic_pdm_clock_control.vhd")
         source = snapshot(hw / "src/hdl/acoustic_pdm_raw_source.vhd")
-        bench = snapshot(hw / "sim/tb_pdm_raw_source.vhd")
-        reference = snapshot(args.reference_tool)
+        bench_name = "tb_pdm_raw_source" if args.suite == "source" else "tb_pdm_raw_capture"
+        bench = snapshot(hw / "sim" / (bench_name + ".vhd"))
+        extra_sources = []
+        if args.suite == "stream":
+            extra_sources.append(snapshot(hw / "src/hdl/acoustic_pdm_raw_capture.vhd"))
+        reference = snapshot(args.reference_tool) if args.suite == "source" else None
         glbl = snapshot(args.vivado_bin.resolve().parent / "data/verilog/src/glbl.v")
         for tool in ("xvhdl", "xvlog", "xelab", "xsim"):
             if not (args.vivado_bin / tool).is_file():
                 raise FileNotFoundError("Missing simulator tool: " + tool)
         execute("version", [args.vivado_bin / "xsim", "--version"], timeout=30)
-        execute("generate-vectors", [sys.executable, reference, "generate", "--directory", run / "vectors"], 30)
+        if reference is not None:
+            execute("generate-vectors", [sys.executable, reference, "generate", "--directory", run / "vectors"], 30)
         execute("compile-vhdl", [args.vivado_bin / "xvhdl", "--2008", "--work", "xil_defaultlib",
-                                 "--log", "compile-vhdl.log", clock, control, source, bench])
+                                 "--log", "compile-vhdl.log", clock, control, source, *extra_sources, bench])
         execute("compile-glbl", [args.vivado_bin / "xvlog", "--work", "xil_defaultlib",
                                  "--log", "compile-glbl.log", glbl])
         execute("elaborate", [args.vivado_bin / "xelab", "--relax", "--mt", "2",
-                              "-L", "unisim", "-L", "unisims_ver", "-L", "secureip",
-                              "xil_defaultlib.tb_pdm_raw_source", "xil_defaultlib.glbl",
+                              "-L", "unisim", "-L", "unisims_ver", "-L", "secureip", "-L", "xpm",
+                              "xil_defaultlib." + bench_name, "xil_defaultlib.glbl",
                               "--snapshot", "pdm_raw_source_tb", "--log", "elaborate.log"])
         execute("simulate", [args.vivado_bin / "xsim", "pdm_raw_source_tb", "--runall",
                              "--onerror", "quit", "--onfinish", "quit", "--stats",
                              "--log", "simulate.log"])
-        if "PDM_RAW_SOURCE_ALL_PASS" not in (run / "simulate.log").read_text():
+        marker = "PDM_RAW_SOURCE_ALL_PASS" if args.suite == "source" else "PDM_RAW_STREAM_ALL_PASS"
+        if marker not in (run / "simulate.log").read_text():
             raise RuntimeError("Simulation ended without the all-pass marker")
-        for suite in ("unit", "clock"):
+        for suite in (("unit", "clock") if args.suite == "source" else ()):
             command = [sys.executable, reference, "verify", "--directory", run / "vectors",
                        "--trace", run / (suite + "-trace.csv"), "--suite", suite,
                        "--report", run / (suite + "-report.json")]
@@ -115,8 +125,26 @@ def main():
                 command += ["--phase-trace", run / "clock-phase.csv"]
             execute("verify-" + suite, command, timeout=30)
         metadata["status"] = "pass"
-        metadata["reports"] = [json.loads((run / (suite + "-report.json")).read_text())
-                               for suite in ("unit", "clock")]
+        if args.suite == "source":
+            metadata["reports"] = [json.loads((run / (suite + "-report.json")).read_text())
+                                   for suite in ("unit", "clock")]
+        else:
+            expected = {1: 1, 2: 2, 3: 17, 4: 4096, 5: 65536, 6: 17,
+                        7: 17, 8: 2, 9: 17, 10: 1, 11: 1}
+            observed = {case: 0 for case in expected}
+            with (run / "stream-trace.csv").open(newline="") as handle:
+                for row in csv.DictReader(handle):
+                    case, index, word, last, keep = (int(row[k]) for k in ("case_id", "index", "word", "last", "keep"))
+                    if case not in expected or index != observed[case] or word != (10 if case == 6 else index):
+                        raise ValueError("Stream trace order/content mismatch")
+                    if keep != 15 or last != int(index == expected[case] - 1):
+                        raise ValueError("Stream trace TKEEP/TLAST mismatch")
+                    observed[case] += 1
+            if observed != expected:
+                raise ValueError("Stream trace length mismatch")
+            metadata["reports"] = [{"result": "pass", "successful_cases": observed,
+                                     "words_checked": sum(observed.values()), "fifo_depth": 8192,
+                                     "protocol_and_errors": "VHDL assertions passed"}]
     except Exception as error:
         metadata["status"] = "fail"
         metadata["error"] = str(error)

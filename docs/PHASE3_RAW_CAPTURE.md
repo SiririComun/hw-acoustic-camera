@@ -1,8 +1,9 @@
-# Phase 3 RAW capture — sampling stage
+# Phase 3 RAW capture — source, FIFO and stream core
 
-Step 3.2 implements and simulates the reusable sampling source. The accepted
-board overlay is still phase-2 clock/control. FIFO, AXI Stream, finite-block
-control, error handling, DMA and Python capture are the following steps.
+Step 3.2 implements the reusable sampling source; step 3.3 adds and simulates
+the finite-block producer, FIFO, AXI Stream, counters and errors. The accepted
+board overlay is still phase-2 clock/control. AXI-Lite/DMA integration and the
+Python capture API belong to step 3.4.
 
 `acoustic_pdm_clock` now exports its existing free-running 24 MHz clock, local
 reset and a combinational sample CE. The CE is active before the third 24 MHz
@@ -61,3 +62,52 @@ timing constraints must be attached and inspected when those endpoints are
 integrated in the phase-3 candidate; no false-path waiver is added in this step.
 The external I/O budget remains conditional, as documented in the architecture
 handoff. The actual Vivado BD PDF is due at phase-3 closeout.
+
+## Step 3.3: capture core
+
+`acoustic_pdm_raw_capture` wraps the source and an actual `xpm_fifo_async`,
+8192x33 by default, block RAM, FWFT, two synchronization stages. Payload and
+TLAST travel in the same FIFO word from 24 MHz to the 100 MHz AXI Stream port.
+TKEEP is always 0xF. The single writer reserves a word at the sample CE before
+its registered source enqueues it on the next write-clock edge. FIFO full
+invalidates and stops the entire block; it does not pause the sampling clock.
+
+The command pins are pulses in the 100 MHz domain, not an AXI-Lite slave.
+START latches N/source into a held mailbox; a toggle crosses into 24 MHz.
+One coherent snapshot mailbox returns frames produced, overflow, producer
+quiescence and command epochs. Final DONE waits for the final TLAST handshake
+and the final producer snapshot. WORDS_SENT counts actual handshakes.
+These ports will be mapped to the shared register contract in step 3.4.
+
+START validates idle/error/ready/length (1..65536) and FIFO state. Error bits
+are configuration=0, overflow=1 and aborted=2. The AXI-Lite adapter must pulse
+`config_error_i` for forbidden configuration writes or selections. ABORT/errors
+stop future production while maintaining an already offered AXI word unchanged.
+An errored active block remains BUSY until stream recovery; DONE stays zero.
+
+The future DMA's `s2mm_prmry_reset_out_n` must connect to `stream_resetn_i`.
+Local recovery clamps the stream, resets the source/FIFO for eight stable write
+clock cycles, waits for both XPM reset-busy signals, then completes a request/ack
+handshake. It preserves sticky errors and diagnostics until an idle CLEAR.
+CLEAR uses a generation-tagged snapshot to prevent stale producer state from
+reappearing after counters/errors are cleared. No clock-enable, identity or
+configuration outside the core is reset. Global reset clears the whole core.
+BUSY also covers startup/local reset and the brief CLEAR handshake.
+
+Run the targeted simulation without repeating the MMCM warmup suite:
+
+```bash
+python3 scripts/simulate_pdm_raw_source.py --suite stream
+```
+
+This uses ideal 24/100 MHz test clocks and the real XPM model with depth 8192.
+It checks exact patterns at N=1,2,17,4096,65536, physical RAW padding, interleaved
+TREADY, held final TLAST, overflow at capacity, ABORT, invalid arguments/commands,
+local recovery followed by exact captures and global reset during a held word.
+AXI stability is monitored even after errors; logs/CSV contain 11 successful
+captures and fault/recovery assertions. The XPM notice about SIM_ASSERT_CHK=1
+only announces enabled simulation diagnostics; it is accepted without cleanup.
+
+The core is not yet instantiated in the production BD. No register-bank mapping,
+DMA soft-reset behavior, board acquisition or routed timing is certified here.
+The next step connects this tested core, the register bank and the DMA.
