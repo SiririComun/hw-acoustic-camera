@@ -1,7 +1,7 @@
 {
   "design": {
     "design_info": {
-      "boundary_crc": "0xAB8EC17CAFB0F94E",
+      "boundary_crc": "0xAB8EC17C5BC84EB0",
       "device": "xc7z020clg400-1",
       "gen_directory": "../../../../pdm_raw_capture_candidate.gen/sources_1/bd/pdm_raw_capture",
       "name": "pdm_raw_capture",
@@ -1451,7 +1451,7 @@
             "value": "0"
           },
           "PCW_S_AXI_HP0_DATA_WIDTH": {
-            "value": "32"
+            "value": "64"
           },
           "PCW_S_AXI_HP0_ID_WIDTH": {
             "value": "6"
@@ -2524,7 +2524,7 @@
             "vlnv": "xilinx.com:interface:aximm_rtl:1.0",
             "parameters": {
               "MAX_BURST_LENGTH": {
-                "value": "16"
+                "value": "8"
               },
               "NUM_READ_OUTSTANDING": {
                 "value": "2"

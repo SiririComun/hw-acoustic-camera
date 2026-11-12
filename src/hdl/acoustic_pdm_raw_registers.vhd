@@ -43,7 +43,7 @@ architecture rtl of acoustic_pdm_raw_registers is
     constant C_CAPABILITIES      : std_logic_vector(31 downto 0) := x"0000000B";
     constant C_CHANNELS          : std_logic_vector(31 downto 0) := x"00000004";
     constant C_BUILD_ID          : std_logic_vector(127 downto 0) :=
-        x"9FD0DDCDB84D4C52910805339C28CE2E";
+        x"CBC300E1202C4B1E9DE4178E96E3F944";
     constant C_PDM_CLOCK_HZ      : std_logic_vector(31 downto 0) := x"00249F00";
     constant C_WARMUP_CYCLES     : std_logic_vector(31 downto 0) := x"0000BB80";
     constant C_RESPONSE_OK       : std_logic_vector(1 downto 0) := "00";

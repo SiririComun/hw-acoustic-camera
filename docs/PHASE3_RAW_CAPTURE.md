@@ -164,3 +164,15 @@ CDC warnings for the held bus are reviewed against its handshake and bounded
 settling time. Reset-driven RAM enables discard the in-flight block during reset;
 FIFO reset/recovery completes before accepting another START. They do not certify
 retention across reset. No waiver is added to hide DATA or mailbox paths.
+
+### Board-found HP0 correction
+
+The first step-3.5 board run passed ten N=1 blocks, then received `[1,0]` for
+N=2 instead of `[0,1]`; the candidate is rejected and retained in evidence.
+HP0 had been configured for 32-bit data, incompatible with the 64-bit HP setup
+at boot in the official PYNQ image. The preserved XADC reference already uses
+HP0=64 with DMA=32. Restore that combination: SmartConnect converts 32->64,
+while the RAW stream, word layout, DMA memory master and software stay 32-bit.
+New hardware BUILD_ID: `cbc300e1202c4b1e9de4178e96e3f944`. The software/HWH
+preflight rejects HP0=32. Rebuild/retest is required; no software word swapping.
+Reference: https://discuss.pynq.io/t/tutorial-pynq-dma-part-1-hardware-design/3133

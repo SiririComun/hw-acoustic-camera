@@ -55,7 +55,7 @@ set ps [get_bd_cells processing_system7_0]
 if {[llength $ps] != 1} {
     error "Could not find the copied processing_system7_0 cell"
 }
-set_property -dict [list CONFIG.PCW_USE_S_AXI_HP0 1 CONFIG.PCW_S_AXI_HP0_DATA_WIDTH 32] $ps
+set_property -dict [list CONFIG.PCW_USE_S_AXI_HP0 1 CONFIG.PCW_S_AXI_HP0_DATA_WIDTH 64] $ps
 
 set reset [create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps7_0_100M]
 # FCLK_RESET0_N is active low. The unused auxiliary/debug resets are tied low,
