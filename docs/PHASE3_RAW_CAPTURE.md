@@ -111,3 +111,32 @@ only announces enabled simulation diagnostics; it is accepted without cleanup.
 The core is not yet instantiated in the production BD. No register-bank mapping,
 DMA soft-reset behavior, board acquisition or routed timing is certified here.
 The next step connects this tested core, the register bank and the DMA.
+
+## Step 3.4 — register bank and DMA integration
+
+`acoustic_pdm_raw_control.vhd` joins the accepted clock, the RAW register adapter
+and the simulated capture core. New BUILD_ID: `9fd0ddcdb84d4c52910805339c28ce2e`,
+CAPABILITIES `0xB`, MAX_FRAMES 65536. The phase-2 control and XADC BD are preserved.
+The adapter keeps independent AXI AW/W channels, byte strobes, held B/R responses
+and application errors in ERROR_FLAGS (malformed/RO accesses return SLVERR).
+Configuration writes during BUSY are rejected without changing configuration.
+
+Run `vivado -mode batch -source scripts/create_pdm_raw_capture_bd.tcl` to prepare
+and validate the new `src/bd/pdm_raw_capture.bd` and wrapper. This script does not
+launch synthesis, implementation or bitstream generation. The validated design
+uses `axi_dma_audio`, simple S2MM, 32-bit stream/memory, 23-bit length, HP0 DDR and
+the primary S2MM reset only for local stream recovery. AXI-Lite and clock control
+remain outside that reset. Control/DMA addresses are 0x43C00000/0x40400000;
+software obtains actual addresses and DMA parameters from the loaded HWH.
+
+`python3 scripts/simulate_pdm_raw_source.py --suite registers` checks AXI-Lite plus
+the native 8192-word XPM core using ideal clocks: 3 successful blocks, malformed
+accesses, strobes, PCM/length rejection, BUSY rejection, abort/reset/CLEAR and
+subsequent capture. The accepted clock simulation need not be repeated unchanged.
+
+Step 3.5 still must build the identified BIT/HWH pair, add and verify scoped RAW
+input/CDC timing constraints against actual synthesis endpoints (see architecture
+handoff 3.1), review routed timing/DRC, and perform board pattern/error checks.
+The inherited phase-2 XDC alone does not close timing for DATA. No DATA false
+paths or global asynchronous clock groups are authorized. No hardware acceptance
+or external timing measurement is implied by BD validation or ideal simulation.

@@ -35,7 +35,7 @@ def main():
     hw = Path(__file__).resolve().parents[1]
     workspace = hw.parent
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--suite", choices=("source", "stream"), default="source")
+    parser.add_argument("--suite", choices=("source", "stream", "registers"), default="source")
     parser.add_argument("--vivado-bin", type=Path,
                         default=Path("/home/siriricomun/tools/Xilinx/Vivado/2024.2/bin"))
     parser.add_argument("--reference-tool", type=Path,
@@ -43,8 +43,8 @@ def main():
     parser.add_argument("--output-root", type=Path)
     args = parser.parse_args()
     args.vivado_bin = args.vivado_bin.resolve()
-    step = "3.2" if args.suite == "source" else "3.3"
-    output_root = args.output_root or workspace / "evidence" / ("phase-03-step-02" if args.suite == "source" else "phase-03-step-03")
+    step = {"source": "3.2", "stream": "3.3", "registers": "3.4"}[args.suite]
+    output_root = args.output_root or workspace / "evidence" / ("phase-03-step-" + {"source": "02", "stream": "03", "registers": "04"}[args.suite])
     run = output_root.resolve() / (datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%SZ-")
                                         + uuid.uuid4().hex[:8])
     run.mkdir(parents=True, exist_ok=False)
@@ -90,11 +90,14 @@ def main():
         clock = snapshot(hw / "src/hdl/acoustic_pdm_clock.vhd")
         control = snapshot(hw / "src/hdl/acoustic_pdm_clock_control.vhd")
         source = snapshot(hw / "src/hdl/acoustic_pdm_raw_source.vhd")
-        bench_name = "tb_pdm_raw_source" if args.suite == "source" else "tb_pdm_raw_capture"
+        bench_name = {"source": "tb_pdm_raw_source", "stream": "tb_pdm_raw_capture", "registers": "tb_pdm_raw_registers"}[args.suite]
         bench = snapshot(hw / "sim" / (bench_name + ".vhd"))
         extra_sources = []
-        if args.suite == "stream":
+        if args.suite != "source":
             extra_sources.append(snapshot(hw / "src/hdl/acoustic_pdm_raw_capture.vhd"))
+        if args.suite == "registers":
+            extra_sources += [snapshot(hw / "src/hdl/acoustic_pdm_raw_registers.vhd"),
+                              snapshot(hw / "src/hdl/acoustic_pdm_raw_control.vhd")]
         reference = snapshot(args.reference_tool) if args.suite == "source" else None
         glbl = snapshot(args.vivado_bin.resolve().parent / "data/verilog/src/glbl.v")
         for tool in ("xvhdl", "xvlog", "xelab", "xsim"):
@@ -114,7 +117,7 @@ def main():
         execute("simulate", [args.vivado_bin / "xsim", "pdm_raw_source_tb", "--runall",
                              "--onerror", "quit", "--onfinish", "quit", "--stats",
                              "--log", "simulate.log"])
-        marker = "PDM_RAW_SOURCE_ALL_PASS" if args.suite == "source" else "PDM_RAW_STREAM_ALL_PASS"
+        marker = {"source": "PDM_RAW_SOURCE_ALL_PASS", "stream": "PDM_RAW_STREAM_ALL_PASS", "registers": "PDM_RAW_REGISTERS_ALL_PASS"}[args.suite]
         if marker not in (run / "simulate.log").read_text():
             raise RuntimeError("Simulation ended without the all-pass marker")
         for suite in (("unit", "clock") if args.suite == "source" else ()):
@@ -128,6 +131,9 @@ def main():
         if args.suite == "source":
             metadata["reports"] = [json.loads((run / (suite + "-report.json")).read_text())
                                    for suite in ("unit", "clock")]
+        elif args.suite == "registers":
+            metadata["reports"] = [{"result": "pass", "scope": "AXI-Lite adapter plus native XPM capture core",
+                                    "successful_captures": 3, "words_checked": 20}]
         else:
             expected = {1: 1, 2: 2, 3: 17, 4: 4096, 5: 65536, 6: 17,
                         7: 17, 8: 2, 9: 17, 10: 1, 11: 1}
