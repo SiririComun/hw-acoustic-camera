@@ -2,7 +2,9 @@
 
 El diseño separado `pdm_clock_control` implementa reloj PDM nominal de 2,4 MHz
 y control AXI-Lite; DATA todavía no se captura. Construcción revisada con timing
-satisfecho; la ejecución de cierre en placa está preparada y pendiente de sudo.
+satisfecho; validación funcional aprobada en PYNQ-Z2 el 2026-11-11:
+identidad, diez ciclos, START/CLEAR y reset. Reloj final apagado, micrófonos
+desconectados; frecuencia/duty e integridad externos no medidos.
 Detalle y artefactos identificados en [docs/PHASE2_CLOCK_CONTROL.md](docs/PHASE2_CLOCK_CONTROL.md).
 
 ## Referencia XADC de fase 1

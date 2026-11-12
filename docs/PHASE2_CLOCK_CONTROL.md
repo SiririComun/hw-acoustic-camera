@@ -14,7 +14,7 @@ and control only; microphone DATA capture, FIFO, DMA and PCM start in later phas
   asynchronously and releases synchronously in the 24 MHz domain.
 - CLOCK_READY requires MMCM lock and 48,000 rising PDM edges (nominal 20 ms).
 - MAGIC=`0x4143414D`, ABI=`0x00010000`, channels=4, capabilities=`0x1`.
-- BUILD_ID=`b3f22d7ae0844695ad24ee1e24ff9ca0`.
+- Accepted BUILD_ID=`710bf4adefe94edab8e0ab42a5138648`.
 - START is unavailable, sets a configuration error and is recoverable with CLEAR.
 
 | Signal | Pmod B pin | FPGA pin | Direction |
@@ -29,7 +29,7 @@ All signals use LVCMOS33. DATA inputs have no sampler in phase 2. Their external
 input timing must be defined with the phase-3 sampler; they are not certified
 capture channels by this design.
 
-## Reviewed build and traceability
+## Original build (historical; retired after interrupted board test)
 
 Vivado 2024.2.2 completed implementation and bitstream generation in step 2.8.
 Routed timing: WNS +4.070 ns, WHS +0.106 ns, no failing endpoints, no unrouted
@@ -50,13 +50,18 @@ and exports the matching BIT/HWH. Neither script programs a board.
 
 ## Board validation and mechanical connection
 
-The closeout runner and the prepared wheel/BIT/HWH have been transferred to
-`/home/xilinx/acoustic_camera_phase2_closeout/` on the board. Board execution is
-pending an interactive sudo invocation by the user; SSH itself works, but
-noninteractive sudo requires a password. The runner records actual installed
-package provenance, hardware identity, ten enable/ready/disable cycles, wrong
-BUILD_ID rejection without writes, unavailable START/CLEAR, and reset by a second
-explicit load. It leaves the PDM clock disabled.
+The corrected candidate passed on the real PYNQ-Z2 on 2026-11-11 (America/Bogota):
+identity, ten enable/ready/disable cycles, wrong BUILD_ID rejection with no writes,
+START/CLEAR without bus exceptions, and reset by a second explicit FPGA load.
+Six code cells executed without errors; runtime dependencies were unchanged.
+The clock was disabled at the end. The user performed the interactive sudo call.
+
+Accepted source commit: `bbfa3abb13154fbe61dc5d1bd5b677f439fd09d2`.
+Accepted BIT SHA-256: `9fd66b9cea4eb7bc7a8c7a5ba0f1baf4be7d25df6d281d5db9c98bbef5325bf7`.
+Accepted HWH SHA-256: `2edb08e0243ff66b624e323a3be25900c859ddb88b2a983b5aab89d2b03df3c5`.
+Corrected routed timing: WNS +3.940 ns, WHS +0.118 ns; no failing endpoints or DRC violations.
+Artifacts, report and review: `evidence/phase-02-closure/` in the common workspace.
+The phase-2 acceptance record is `context/integration-lock.json`.
 
 The block diagram PDF was exported from the implementation project's actual BD
 and is preserved in `evidence/phase-02-closure/` in the common workspace.
@@ -78,4 +83,4 @@ The new BUILD_ID is 710bf4adefe94edab8e0ab42a5138648.
 Unsupported operations at valid command/configuration addresses acknowledge AXI
 with OKAY and set ERROR_FLAGS; this allows software to inspect and clear the
 application error without a CPU external abort. Malformed/unmapped/RO accesses
-retain AXI bus errors. Real board validation is required before acceptance.
+retain AXI bus errors. The corrected candidate subsequently passed the real board validation above.
