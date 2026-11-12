@@ -41,7 +41,7 @@ architecture rtl of acoustic_pdm_clock_control is
     constant C_CAPABILITIES      : std_logic_vector(31 downto 0) := x"00000001";
     constant C_CHANNELS          : std_logic_vector(31 downto 0) := x"00000004";
     constant C_BUILD_ID          : std_logic_vector(127 downto 0) :=
-        x"B3F22D7AE0844695AD24EE1E24FF9CA0";
+        x"710BF4ADEFE94EDAB8E0AB42A5138648";
     constant C_PDM_CLOCK_HZ      : std_logic_vector(31 downto 0) := x"00249F00";
     constant C_WARMUP_CYCLES     : std_logic_vector(31 downto 0) := x"0000BB80";
     constant C_RESPONSE_OK       : std_logic_vector(1 downto 0) := "00";
@@ -196,7 +196,7 @@ begin
                                     wstrb_hold
                                 );
                                 if unsigned(merged_word(31 downto 1)) /= to_unsigned(0, 31) then
-                                    write_error := true;
+                                    next_error_flags(0) := '1';
                                 else
                                     clock_enable_reg <= merged_word(0);
                                 end if;
@@ -213,14 +213,12 @@ begin
                                     null;
                                 elsif command_word = x"00000001" then
                                     next_error_flags(0) := '1'; -- no capture capability yet
-                                    write_error := true;
                                 elsif command_word = x"00000002" then
                                     next_error_flags(2) := '1'; -- abort recorded, nothing is running
                                 elsif command_word = x"00000004" then
                                     next_error_flags := (others => '0');
                                 else
                                     next_error_flags(0) := '1';
-                                    write_error := true;
                                 end if;
 
                             when 16#30# => -- FORMAT: no capture format in phase 2
@@ -229,7 +227,6 @@ begin
                                     format_reg <= merged_word;
                                 else
                                     next_error_flags(0) := '1';
-                                    write_error := true;
                                 end if;
 
                             when 16#34# => -- SOURCE: no source selection in phase 2
@@ -238,7 +235,6 @@ begin
                                     source_reg <= merged_word;
                                 else
                                     next_error_flags(0) := '1';
-                                    write_error := true;
                                 end if;
 
                             when 16#38# => -- N_FRAMES is zero until capture exists
@@ -247,12 +243,16 @@ begin
                                     n_frames_reg <= merged_word;
                                 else
                                     next_error_flags(0) := '1';
-                                    write_error := true;
                                 end if;
 
                             when others => -- RO and unmapped locations are errors
                                 write_error := true;
                         end case;
+                        -- Valid configuration/command addresses acknowledge the
+                        -- bus transaction and report application rejection via
+                        -- ERROR_FLAGS. SLVERR on an ordinary MMIO write can cause
+                        -- a CPU external abort instead of a recoverable error.
+                        -- Keep bus errors for malformed/unmapped/RO accesses.
                         if write_error then
                             response := C_RESPONSE_SLVERR;
                         end if;

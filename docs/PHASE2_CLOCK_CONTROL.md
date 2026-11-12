@@ -67,3 +67,15 @@ at Pmod B remain unmeasured. Microphones remain disconnected for this test.
 Before physical mounting in phase 3, confirm module identity and orientation,
 check continuity with power off, measure the 3.3 V rail and give the user the
 final wiring instructions.
+
+## Board-attempt correction (2026-11-11)
+
+The initial candidate has been retired following an interrupted board test.
+Its unused proc_sys_reset auxiliary input was tied low while configured active
+low, holding AXI peripherals in reset. The corrected design explicitly sets
+C_AUX_RESET_HIGH=1 and C_EXT_RESET_HIGH=0 (PS FCLK_RESET0_N remains active low).
+The new BUILD_ID is 710bf4adefe94edab8e0ab42a5138648.
+Unsupported operations at valid command/configuration addresses acknowledge AXI
+with OKAY and set ERROR_FLAGS; this allows software to inspect and clear the
+application error without a CPU external abort. Malformed/unmapped/RO accesses
+retain AXI bus errors. Real board validation is required before acceptance.

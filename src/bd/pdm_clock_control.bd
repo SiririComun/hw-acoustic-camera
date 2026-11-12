@@ -1972,7 +1972,12 @@
         "ip_revision": "16",
         "xci_name": "pdm_clock_control_rst_ps7_0_100M_0",
         "xci_path": "ip/pdm_clock_control_rst_ps7_0_100M_0/pdm_clock_control_rst_ps7_0_100M_0.xci",
-        "inst_hier_path": "rst_ps7_0_100M"
+        "inst_hier_path": "rst_ps7_0_100M",
+        "parameters": {
+          "C_AUX_RESET_HIGH": {
+            "value": "1"
+          }
+        }
       },
       "axi_smc_0": {
         "vlnv": "xilinx.com:ip:smartconnect:1.0",

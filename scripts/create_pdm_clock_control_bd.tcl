@@ -59,6 +59,9 @@ if {[llength $ps] != 1} {
 set_property CONFIG.PCW_USE_S_AXI_HP0 0 $ps
 
 set reset [create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps7_0_100M]
+# FCLK_RESET0_N is active low. The unused auxiliary/debug resets are tied low,
+# therefore aux_reset_in MUST be active high or the entire AXI bus stays reset.
+set_property -dict [list CONFIG.C_EXT_RESET_HIGH 0 CONFIG.C_AUX_RESET_HIGH 1] $reset
 set smartconnect [create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc_0]
 set_property -dict [list CONFIG.NUM_SI 1 CONFIG.NUM_MI 1] $smartconnect
 set control [create_bd_cell -type module -reference acoustic_pdm_clock_control acoustic_capture_0]
@@ -107,6 +110,10 @@ if {[llength $control_reg] != 1} {
 assign_bd_address -offset 0x43C00000 -range 64K $control_reg
 
 validate_bd_design
+if {[get_property CONFIG.C_EXT_RESET_HIGH $reset] != 0 ||
+    [get_property CONFIG.C_AUX_RESET_HIGH $reset] != 1} {
+    error "Reset polarity mismatch: FCLK_RESET0_N low-active, auxiliary reset high-active required"
+}
 save_bd_design
 write_bd_tcl -force [file join $run_root pdm_clock_control_replay.tcl]
 
