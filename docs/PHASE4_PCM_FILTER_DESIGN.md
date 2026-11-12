@@ -1,7 +1,7 @@
 # Phase 4.2: PDM-to-PCM filter design
 
-Status: design and integer reference frozen for review; no PCM RTL, bitstream,
-or board changes are part of this step. The machine-readable specification is
+Status at step 4.2: design and integer reference frozen before RTL.
+The subsequent step-4.3 standalone RTL is described in PHASE4_PCM_RTL.md. The machine-readable specification is
 [`pcm_filter_v1.json`](pcm_filter_v1.json); the software repository keeps the
 same file as package data and includes the generator and integer reference.
 
@@ -20,8 +20,9 @@ as `0 -> -1`, `1 -> +1`. The chain is:
    24–240 kHz. Coefficients were designed with `scipy.signal.remez`, weights
    `[1, 100]`, and unity-DC normalization.
 
-The FIR history and multiply-accumulate operation consume **every** 480 kHz CIC
-sample; only the filtered output is decimated. CIC results occur after PDM
+The FIR history consumes **every** 480 kHz CIC sample. The implementation
+may calculate only retained convolution results using a shared MAC; this is
+mathematically equivalent to filtering at 480 kHz then decimating. CIC results occur after PDM
 sample indices 4, 9, 14, ...; PCM outputs occur after indices 49, 99, 149, ...
 for all channels on the same phase.
 

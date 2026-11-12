@@ -1,7 +1,8 @@
 # Phase 4 — four-channel PCM capture
 
-Status: step 4.1 complete; filter design is the next step. No PCM RTL or
-bitstream has been implemented for this phase.
+Status: steps 4.1–4.3 complete. The standalone PCM filter is implemented and
+verified in XSim; BD/register/FIFO/DMA integration is next. No phase-4 bitstream
+has been generated. See [PHASE4_PCM_RTL.md](PHASE4_PCM_RTL.md).
 
 ## Baseline
 
@@ -29,5 +30,5 @@ register and data semantics while adding the already specified PCM capability:
 
 The filter architecture, coefficients, fixed-point widths, scaling, rounding,
 latency and settling count must be designed and recorded before RTL changes.
-Their targets and the complete alias-band requirements are in the project
-acceptance plan; this note does not select or implement a filter.
+The frozen design is in [PHASE4_PCM_FILTER_DESIGN.md](PHASE4_PCM_FILTER_DESIGN.md);
+its standalone implementation is in [PHASE4_PCM_RTL.md](PHASE4_PCM_RTL.md).
