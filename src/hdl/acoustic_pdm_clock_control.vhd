@@ -104,7 +104,10 @@ begin
             clock_enable_async_i => clock_enable_reg,
             pdm_clk_o            => pdm_clk_o,
             clock_ready_24m_o    => pdm_clock_ready_24m,
-            mmcm_locked_o        => mmcm_locked
+            mmcm_locked_o        => mmcm_locked,
+            clk_24m_o            => open,
+            resetn_24m_o         => open,
+            sample_ce_24m_o      => open
         );
 
     clock_ready_status <= ready_sync and locked_sync;

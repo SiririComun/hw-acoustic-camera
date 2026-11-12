@@ -14,7 +14,10 @@ entity acoustic_pdm_clock is
         clock_enable_async_i  : in  std_logic;
         pdm_clk_o             : out std_logic;
         clock_ready_24m_o     : out std_logic;
-        mmcm_locked_o         : out std_logic
+        mmcm_locked_o         : out std_logic;
+        clk_24m_o             : out std_logic;
+        resetn_24m_o          : out std_logic;
+        sample_ce_24m_o       : out std_logic
     );
 end acoustic_pdm_clock;
 
@@ -52,6 +55,17 @@ begin
     pdm_clk_o <= pdm_clk_reg and reset24n;
     clock_ready_24m_o <= clock_ready_24 and reset24n;
     mmcm_locked_o <= mmcm_locked;
+    clk_24m_o <= clk24;
+    resetn_24m_o <= reset24n;
+
+    -- This is a synchronous enable, not a clock. Evaluate it BEFORE the
+    -- sampling edge: falling PDM sets count=0; old count=2 selects the third
+    -- following 24 MHz edge (125 ns nominal). Do not register this decode
+    -- without anticipation, which would move the sample one base cycle late.
+    -- No sample event is offered during reset, warmup or clock shutdown.
+    sample_ce_24m_o <= '1' when reset24n = '1' and enable_sync = '1'
+        and clock_ready_24 = '1' and pdm_clk_reg = '0' and divide_count = 2
+        else '0';
 
     mmcm_i : MMCME2_BASE
         generic map (
