@@ -140,3 +140,27 @@ handoff 3.1), review routed timing/DRC, and perform board pattern/error checks.
 The inherited phase-2 XDC alone does not close timing for DATA. No DATA false
 paths or global asynchronous clock groups are authorized. No hardware acceptance
 or external timing measurement is implied by BD validation or ideal simulation.
+
+
+## Step 3.5 — routed timing and candidate
+
+`pynq_z2_raw_timing.xdc` augments (and does not alter) phase-2 pin constraints.
+The PDM clock is anchored through the actual divider register C->Q to the output,
+excluding the reset clamp as the clock source. DATA uses a conditional 0..90 ns
+external pad-to-pad budget; FPGA clock output <=10 ns and DATA input/setup <=10 ns
+complete the 3.1 envelope. These values are assumptions, not sensor measurements.
+Setup is scoped to the third base edge after PDM fall (125 ns); paired hold uses
+zero minimum delay, conservative versus the preceding accepted sample.
+
+Only eight first-stage synchronizer D pins are exempted. The 36-bit held snapshot
+is bounded to 15 ns (consumed >=20 ns after request); 33 START configuration bits
+are bounded to 41.667 ns (consumed >=83.333 ns later). Second stages, other logic,
+and all DATA paths remain timed. XPM Gray bus skew is reported separately.
+`build_pdm_raw_capture.tcl` supports synthesis and implementation of the prepared
+project. Step-3.5 evidence records post-route clock-source correction, with final
+reports/checkpoint/bitstream from the same routed design; no RTL changed.
+
+CDC warnings for the held bus are reviewed against its handshake and bounded
+settling time. Reset-driven RAM enables discard the in-flight block during reset;
+FIFO reset/recovery completes before accepting another START. They do not certify
+retention across reset. No waiver is added to hide DATA or mailbox paths.
