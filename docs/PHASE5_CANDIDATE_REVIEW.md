@@ -41,3 +41,25 @@ Keep this candidate fixed for the 100-block campaign. Revisit hardware only if
 the campaign exposes a concrete error, overflow, count mismatch, or other
 hardware-attributable failure. If no change is required, do not rebuild or
 reprogram a new bitstream solely to clear advisory warnings.
+
+## Phase 5 campaign and closure
+
+The phase 5.3 physical campaign passed 100/100 serial captures of 48,000
+four-channel PCM frames on the pinned candidate. Every returned array and its
+metadata passed the frame, word, byte, status, range, provenance, overflow, clip
+and DMA checks; the clock was disabled at completion. The campaign report and
+per-block records are retained in workspace evidence under
+`evidence/phase-05-step-03/board/pcm-stability-20261113T184651Z-45725f00/`.
+
+No RTL, Block Design, constraints, BIT or HWH changed during phase 5, so no
+hardware rebuild was needed. The 1.902949 s host call for block 51 passed its
+data and hardware counters; criterion E has no maximum call-duration limit.
+The logged inter-call pauses do not establish sample loss inside complete
+blocks, and the campaign does not claim continuous acquisition. No tones,
+channel mapping or geometry tests were performed.
+
+The actual Vivado 2024.2.2 Block Design PDF delivered at phase 5 closeout is
+`evidence/phase-05-closeout/phase5-vivado-block-design.pdf`, SHA-256
+`61e81bf3c304dea847b2d670193daa16492ae97c685eb39ac0de38aa33579078`. It is a
+byte-identical copy of the accepted phase 4 export; the source BD hash remains
+`40f8ccb6be80e597422272a63e3d48e2352322238da04f6884c71c9f49ccd7fc`.
