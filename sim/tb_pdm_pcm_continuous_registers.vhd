@@ -92,7 +92,7 @@ begin
             assert value = expected(index*32+31 downto index*32) report "BUILD_ID word mismatch" severity failure;
             rready <= '1'; ticks; rready <= '0';
         end;
-        constant build_id : std_logic_vector(127 downto 0) := x"7A2C7F017A2C4E7D8F70070100000001";
+        constant build_id : std_logic_vector(127 downto 0) := x"7A2C7F017A2C4E7D8F70070100000002";
     begin
         ticks(4); resetn <= '1'; ticks(2);
         rd(0, x"4143414D"); rd(4, x"00010001"); rd(8, x"0000001F"); rd(12, x"00000004");

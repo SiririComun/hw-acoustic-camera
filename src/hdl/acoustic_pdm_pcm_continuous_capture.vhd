@@ -63,6 +63,7 @@ architecture rtl of acoustic_pdm_pcm_continuous_capture is
     signal recover_seen : std_logic := '0';
     signal reset_count : natural range 0 to 8 := 8;
     signal fifo_reset : std_logic := '1';
+    signal filter_ready_24 : std_logic := '0';
     signal active_24, overflow_24, pending_last : std_logic := '0';
     signal admitted, produced, length_24 : unsigned(31 downto 0) := (others => '0');
     signal source_valid : std_logic := '0';
@@ -103,7 +104,35 @@ begin
     overflow_count_o <= x"00000001" when overflow_visible = '1' else x"00000000";
     total_frames_o <= std_logic_vector(frames_total_visible);
     total_words_o <= std_logic_vector(words_total);
-    stop_level <= '1' when errors /= "000" or state = RECOVERY else '0';
+
+    -- Register the combined error/recovery level before crossing to clk_24m.
+    -- The extra 100 MHz cycle is negligible relative to the producer cadence
+    -- and prevents a state/error decode glitch from becoming a false stop.
+    process (clk_100m_i, resetn_100m_i)
+    begin
+        if resetn_100m_i = '0' then
+            stop_level <= '1';
+        elsif rising_edge(clk_100m_i) then
+            if errors /= "000" or state = RECOVERY then stop_level <= '1';
+            else stop_level <= '0';
+            end if;
+        end if;
+    end process;
+
+    -- Turn the filter's combinational ready decode into a stable 24 MHz level
+    -- before the existing two-flop synchronizer to clk_100m.
+    process (clk_24m_i, resetn_24m_i)
+    begin
+        if resetn_24m_i = '0' then
+            filter_ready_24 <= '0';
+        elsif rising_edge(clk_24m_i) then
+            if clock_ready_24m_i = '0' or pcm_overrun = '1' then
+                filter_ready_24 <= '0';
+            elsif pcm_ready = '1' then
+                filter_ready_24 <= '1';
+            end if;
+        end if;
+    end process;
 
     start_pulse <= start_pipe(1) xor start_seen;
     filter_resetn <= resetn_24m_i and clock_ready_24m_i;
@@ -317,7 +346,7 @@ begin
             snapshot_req_pipe <= "00"; snapshot_ack <= '0'; filter_ready_pipe <= "00";
             frames_total_visible <= (others => '0'); words_total <= (others => '0');
         elsif rising_edge(clk_100m_i) then
-            filter_ready_pipe <= filter_ready_pipe(0) & pcm_ready;
+            filter_ready_pipe <= filter_ready_pipe(0) & filter_ready_24;
             recover_ack_pipe <= recover_ack_pipe(0) & recover_ack;
             snapshot_req_pipe <= snapshot_req_pipe(0) & snapshot_req;
             next_errors := errors;

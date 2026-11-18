@@ -45,7 +45,7 @@ architecture rtl of acoustic_pdm_pcm_continuous_registers is
     constant C_CAPABILITIES      : std_logic_vector(31 downto 0) := x"0000001F";
     constant C_CHANNELS          : std_logic_vector(31 downto 0) := x"00000004";
     constant C_BUILD_ID          : std_logic_vector(127 downto 0) :=
-        x"7A2C7F017A2C4E7D8F70070100000001";
+        x"7A2C7F017A2C4E7D8F70070100000002";
     constant C_PDM_CLOCK_HZ      : std_logic_vector(31 downto 0) := x"00249F00";
     constant C_WARMUP_CYCLES     : std_logic_vector(31 downto 0) := x"0000BB80";
     constant C_RESPONSE_OK       : std_logic_vector(1 downto 0) := "00";

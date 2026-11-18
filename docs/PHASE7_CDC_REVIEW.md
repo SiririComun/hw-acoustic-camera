@@ -1,118 +1,91 @@
-# Phase 7.4 — Static CDC review of the continuous PCM candidate
+# Phase 7.4 — CDC review of the continuous PCM candidate
 
-Date: 2026-11-17 (America/Bogota). Status: **static review completed; the
-candidate is not yet cleared for board programming**. Phase 6 remains open at
-6.3; this review does not change that status or integrate video.
+Date: 2026-11-17 (America/Bogota). Status: **review complete for the synthetic
+transport gate in 7.5; no claim that the design is CDC-clean**. Phase 6 remains
+open at 6.3. The continuous PCM candidate remains separate from the accepted
+PCM and video designs.
 
-## Scope and evidence
+## Reviewed build
 
-Reviewed the routed Vivado 2024.2.2 reports for `pdm_pcm_continuous_capture`
-from `evidence/phase-07-step-02/candidate/reports/`, the candidate RTL and
-constraints in `src/hdl/` and `src/con/`, and the SG driver/interface contract.
-The source candidate is HW commit `c5d0ef32d28bf30624b9094fd6f87a244be505b7`
-(BUILD_ID `7A2C7F017A2C4E7D8F70070100000001`).
+This is a correction to the 7.2 candidate, kept separate from the accepted
+design. The source changes register the producer stop indication in `clk100m`
+and filter readiness in `clk24m` before their existing two-flop crossings. The
+register simulation and continuous stream simulation pass. Vivado rebuilt the
+acoustic-capture out-of-context synthesis and then reran synthesis and routed
+implementation; this avoids reusing the stale OOC checkpoint from the first
+attempt. The current build is ABI 1.1, BUILD_ID
+`7A2C7F017A2C4E7D8F70070100000002`.
 
-No RTL or constraints were changed in this review. No Vivado build, simulation,
-board programming, DMA run, or microphone test was performed. The existing
-simulation and host evidence remains the evidence from steps 7.2 and 7.3; it
-does not prove metastability behavior or DMA operation on the board.
+The corrected `.bit` and matching `.hwh` are in
+`evidence/phase-07-step-04/candidate/`. SHA-256:
 
-## Disposition
+- bit: `8072ec35f2bedeedfdea1b0ba13961fee40d430aca032c706436c56a98e5ab74`
+- HWH: `3882d98dc20fc284154bd93b1cdbcd7cc80f6fd37df6cd1fffae49712c67075c`
 
-The report lists CDC-1: 459 Critical, CDC-10: 4 Critical, CDC-11: 2 Critical,
-CDC-15: 389 Warning, and CDC-3: 9 Info. The report labels the reviewed clock
-pair `clk_fpga_0` to `clk24_mmcm` as `Safely Timed`; this label and the rule
-counts are not, by themselves, a clean-CDC determination.
+The Block Design did not change; the actual Vivado PDF exported in 7.2 remains
+the applicable drawing. The candidate has **not** been programmed on the board.
 
-### Held configuration and snapshot buses — documented bundled-data crossings
+## CDC disposition
 
-Most CDC-1/CDC-15 endpoints are data buses sampled under a separately
-synchronized control event:
+The final routed report classifies CDC-1: 459 Critical, CDC-3: 11 Info, CDC-10:
+2 Critical, CDC-11: 2 Critical, and CDC-15: 389 Warning. Vivado's “Safely
+Timed” clock-pair label does not mean the design is CDC-clean.
 
-- `block_length`, `block_pattern`, `block_pcm`, and `continuous_mode` are set
-  together with the 100 MHz `start_req` toggle and remain stable while a run is
-  active. The toggle passes through `start_pipe`; the 24 MHz side consumes the
-  configuration on `start_pulse`. `pynq_z2_pcm_continuous_timing.xdc` bounds
-  the configuration paths to `clk24_mmcm` with a 41.667 ns datapath-only
-  maximum delay.
-- The 132-bit `snapshot_data` bus is registered in the 24 MHz domain and held
-  until the synchronized acknowledgement returns. `snapshot_req_pipe` crosses
-  the request to 100 MHz; the XDC bounds snapshot-data paths to `clk_fpga_0`
-  with a 15 ns datapath-only maximum delay.
+### Functional paths corrected
 
-These are intentional bundled-data crossings, not per-bit synchronizers. The
-current RTL and constraints provide a plausible handshake and timing basis for
-their disposition. Preserve the hold-until-ack behavior and both bounds; if
-either protocol or constraints change, re-review these paths. The report still
-contains the Critical/Warning classifications and is not to be described as
-CDC-clean on this basis alone.
+- `stop_level` is now registered in the 100 MHz source domain before
+  `stop_pipe[0]`; Vivado reports this as CDC-3.
+- `filter_ready_24` is now registered in the 24 MHz source domain before
+  `filter_ready_pipe[0]`; Vivado reports this as CDC-3.
 
-### CDC-3 and CDC-11 — synchronizer topology
+Both source registers and first-stage destinations are visible in the routed
+CDC report. This removes the two functional combinational-before-synchronizer
+concerns from the prior review.
 
-The nine CDC-3 paths terminate at first-stage synchronizer registers carrying
-`ASYNC_REG`. The two CDC-11 paths originate at the XPM FIFO reset controller
-and fan out to the XPM write-reset synchronizer and the local
-`read_busy_pipe[0]` synchronizer. The local chain is marked `ASYNC_REG`; both
-reported destinations are synchronization stages rather than direct
-functional consumers. This topology is consistent with independent reset or
-status synchronization, but the Critical classification remains recorded and
-must be rechecked if the FIFO implementation or reset path changes.
+### Remaining classifications and practical disposition
 
-The RTL holds FIFO reset for eight write-clock cycles and waits for write-busy
-and synchronized read-busy to clear before acknowledging recovery. AMD's
-7-series/Zynq-7000 XPM FIFO guide requires waiting for the busy outputs to
-deassert after reset and not toggling `wr_en`/`rd_en` while reset or busy is
-asserted ([UG953, XPM_FIFO_ASYNC](https://docs.amd.com/r/2022.1-English/ug953-vivado-7series-libraries/XPM_FIFO_ASYNC)).
+- The two CDC-10 entries are reset-related: asynchronous assertion at
+  `reset24_pipe[0]/CLR`, already narrowly false-pathed by the existing Phase 4
+  constraint, and reset status entering the fail-closed ready synchronizer.
+  Reset release remains synchronized in the destination domain.
+- The two CDC-11 entries originate in the XPM FIFO reset controller and feed
+  its reset synchronizer and the local `read_busy_pipe[0]` synchronizer. The
+  destination is a synchronizer stage; reset recovery waits for FIFO busy
+  status to clear before acknowledging recovery. FIFO read/write requests are
+  gated by reset, busy, and empty status. Preserve this reset sequence.
+- Most CDC-1/CDC-15 rows are the held configuration and snapshot buses. The
+  start and snapshot toggle/acknowledge protocols keep each bus stable while
+  sampled; the existing XDC bounds configuration to 41.667 ns and snapshot
+  data to 15 ns. These grouped paths remain classified by Vivado and must not
+  be described as individually synchronized or as proof of clean CDC.
 
-### CDC-10 — two status paths need a design disposition before programming
+For 7.5, the candidate is suitable for a **controlled synthetic-pattern
+transport test** that checks stream continuity, descriptor completion, and
+overload/error reporting. That is a functional board gate, not CDC sign-off.
+Stop if reset recovery, ready status, DMA completion, or sample counters behave
+unexpectedly. Do not use this review alone to authorize the later prolonged
+physical microphone capture.
 
-1. `stop_level` is combinationally decoded from `errors` and `state` and feeds
-   `stop_pipe[0]`. It can affect producer activity in the 24 MHz domain. The
-   current artifacts do not prove that transitions cannot create a short
-   spurious level. Register the source status or supply a design-specific
-   timing/glitch argument before accepting this path.
-2. `filter_ready_o` is combinationally decoded from `settle_count = 6` and
-   `overrun = 0`, then feeds `filter_ready_pipe[0]`. A transient decode could
-   report readiness early to the AXI domain. This matters for physical
-   microphone capture. Register the readiness indication in its source domain
-   or prove the transition safe before accepting this path.
+## Implementation report
 
-The remaining CDC-10 paths have intentional fail-safe/reset behavior:
+- Routed setup: WNS `+1.746 ns`, zero failing setup endpoints.
+- Routed hold: WHS `+0.018 ns`, zero failing hold endpoints.
+- Timing summary: all user-specified timing constraints met.
+- `check_timing`: no unconstrained internal endpoints, no missing input
+  delays, and one LOW missing output delay on `pdm_clk_o`.
+- DRC: 43 checks (42 Warning, 1 Advisory), zero errors. The report includes
+  20 REQP-1839 and 6 REQP-1840 asynchronous BRAM-control warnings, plus
+  pipelining, slice-pairing, report-limit, and routability findings. Preserve
+  them as known implementation findings; this step does not claim the
+  warnings are fixed. The FIFO access gating and synthetic transport test
+  provide the next functional evidence rather than another warning-count
+  cleanup loop.
 
-- `reset24_async` asserts the reset pipe asynchronously from PS reset or loss
-  of MMCM lock; the two-stage `reset24_pipe` releases it synchronously to
-  `clk24`. The bundled phase-4 constraint file `pynq_z2_pcm.xdc` already
-  false-paths only the `reset24_pipe` asynchronous `CLR` pins.
-- `clock_ready_24m_o` is gated by `reset24n` before its two-stage 100 MHz
-  synchronizer. This gate forces readiness low immediately on reset; the
-  clock-ready source is not asserted until its warm-up interval completes.
-  Keep the fail-closed behavior and re-review if the reset or warm-up sequence
-  changes.
+## Evidence and next action
 
-All four CDC-10 entries are reported with false-path exceptions to their
-intended first-stage or asynchronous-reset pins. Those exceptions do not by
-themselves establish that the two status signals above are glitch-free.
-
-## Related implementation limits
-
-The routed timing report has WNS +2.235 ns and WHS +0.016 ns with no failing
-setup/hold endpoints. `check_timing` reports one low-severity missing
-output-delay constraint on `pdm_clk_o`. These are not CDC findings, but remain
-part of candidate release review.
-
-The DRC report has no errors but includes REQP-1839/1840 asynchronous-control
-warnings on BRAM ports; the REQP-1839 report limit was reached. The candidate
-gates FIFO read/write activity with reset/busy/empty conditions, but this
-static CDC review does not close the BRAM-reset warning. Preserve it as an
-open reset/implementation disposition before claiming the candidate fully
-reviewed.
-
-## Gate and next action
-
-**Do not program this candidate yet.** The bundled configuration/snapshot
-crossings and reset synchronizer have a documented basis, but the two CDC-10
-status paths and the related BRAM asynchronous-control warnings are not
-cleared. The next Phase 7 work should address or justify those findings and
-produce current CDC/DRC evidence before the synthetic on-board transport run.
-No microphone connection is needed for that synthetic test; the four
-microphones will be requested before the later ten-minute physical capture.
+See `evidence/phase-07-step-04/README.md`, the candidate manifest, routed
+CDC/timing/DRC reports, endpoint counts, Vivado logs, and the two simulation
+reports referenced there. No PYNQ programming, DMA run, or microphone test was
+performed in 7.4. No microphone connection is needed for the synthetic test;
+the four microphones must be confirmed before the prolonged physical capture
+step.
