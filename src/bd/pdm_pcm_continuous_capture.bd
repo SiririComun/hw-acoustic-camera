@@ -2462,6 +2462,9 @@
           "c_s_axis_s2mm_tdata_width": {
             "value": "32"
           },
+          "c_sg_include_stscntrl_strm": {
+            "value": "0"
+          },
           "c_sg_length_width": {
             "value": "23"
           }

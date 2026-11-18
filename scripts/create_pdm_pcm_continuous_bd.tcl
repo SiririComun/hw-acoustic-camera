@@ -70,7 +70,7 @@ set dma [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 axi_dma_audio]
 set_property -dict [list CONFIG.c_include_sg 1 CONFIG.c_include_mm2s 0 \
     CONFIG.c_include_s2mm 1 CONFIG.c_sg_length_width 23 CONFIG.c_addr_width 32 \
     CONFIG.c_m_axi_s2mm_data_width 32 CONFIG.c_s_axis_s2mm_tdata_width 32 \
-    CONFIG.c_s2mm_burst_size 16] $dma
+    CONFIG.c_s2mm_burst_size 16 CONFIG.c_sg_include_stscntrl_strm 0] $dma
 set memory_connect [create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 dma_to_hp0]
 set_property -dict [list CONFIG.NUM_SI 2 CONFIG.NUM_MI 1] $memory_connect
 
@@ -149,7 +149,7 @@ add_files -norecurse $wrapper_generated
 add_files -fileset constrs_1 -norecurse [list $source_constraints [file join $repo_root src con pynq_z2_pcm_continuous_timing.xdc]]
 set_property top pdm_pcm_continuous_capture_wrapper [get_filesets sources_1]
 update_compile_order -fileset sources_1
-foreach {key expected} {c_include_sg 1 c_include_mm2s 0 c_include_s2mm 1 c_sg_length_width 23 c_m_axi_s2mm_data_width 32 c_s_axis_s2mm_tdata_width 32} {
+foreach {key expected} {c_include_sg 1 c_include_mm2s 0 c_include_s2mm 1 c_sg_length_width 23 c_m_axi_s2mm_data_width 32 c_s_axis_s2mm_tdata_width 32 c_sg_include_stscntrl_strm 0} {
     if {[get_property CONFIG.$key $dma] != $expected} {error "DMA parameter mismatch: $key"}
 }
 if {[get_property CONFIG.PCW_S_AXI_HP0_DATA_WIDTH $ps] != 64} {error "PYNQ HP0 must remain 64-bit"}
