@@ -1,5 +1,11 @@
 # Phase 7.4 — CDC review of the continuous PCM candidate
 
+Historical review snapshot from 2026-11-17. Phase 6 was still open at that
+point; its approved scope and the phase-7 physical-capture result are recorded
+in [`PHASE7_CLOSEOUT.md`](PHASE7_CLOSEOUT.md). The later 7.5 BD correction and
+the final Vivado PDF are also recorded there. This report remains the CDC
+review record; the listed Critical/Warning findings are not called clean.
+
 Date: 2026-11-17 (America/Bogota). Status: **review complete for the synthetic
 transport gate in 7.5; no claim that the design is CDC-clean**. Phase 6 remains
 open at 6.3. The continuous PCM candidate remains separate from the accepted
