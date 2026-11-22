@@ -27,7 +27,9 @@ set_false_path -to $raw_cdc_first
 # to settle before the 24 MHz consumer; constrain it to one 24 MHz period.
 set raw_snapshot [get_cells -hier -regexp {.*capture_i/snapshot_data_reg\[[0-9]+\]$}]
 set raw_config [get_cells -hier -regexp {.*capture_i/(block_length_reg\[[0-9]+\]|block_pattern_reg|block_pcm_reg|continuous_mode_reg)$}]
-set_max_delay -datapath_only 15.000 -from $raw_snapshot -to [get_clocks clk_fpga_0]
-set_max_delay -datapath_only 41.667 -from $raw_config -to [get_clocks clk24_mmcm]
+set raw_100m_clock [get_clocks -of_objects [get_pins -hier -regexp {.*capture_i/frames_total_visible_reg\[0\]/C}]]
+set raw_24m_clock [get_clocks -of_objects [get_pins -hier -regexp {.*capture_i/sampled_pdm_reg\[0\]/C}]]
+set_max_delay -datapath_only 15.000 -from $raw_snapshot -to $raw_100m_clock
+set_max_delay -datapath_only 41.667 -from $raw_config -to $raw_24m_clock
 # XPM supplies its own internal FIFO pointer/reset constraints. DATA paths above
 # remain fully analysed. No blanket exceptions cover status, FIFO or reset logic.
