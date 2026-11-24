@@ -144,7 +144,7 @@ assign_bd_address -offset 0x43C80000 -range 64K $control_reg -force
 assign_bd_address -offset 0x40400000 -range 64K \
     [get_bd_addr_segs $dma/S_AXI_LITE/Reg] -force
 assign_bd_address -offset 0x43CA0000 -range 64K \
-    [get_bd_addr_segs $buzzer/S_AXI/Reg] -force
+    [get_bd_addr_segs $buzzer/s_axi/reg0] -force
 
 # PCM uses HP2; video VDMA remains isolated on HP0. Map both the payload and
 # descriptor fetch address spaces onto the same PS DDR window behind HP2.
