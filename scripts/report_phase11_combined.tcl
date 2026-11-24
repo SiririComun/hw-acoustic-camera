@@ -5,6 +5,10 @@ if {![file isfile $project_path]} {
 }
 open_project $project_path
 open_run impl_1
+set buzzer_port [get_ports -quiet buzzer_pulse_o]
+if {[llength $buzzer_port] != 1 || [get_property PACKAGE_PIN $buzzer_port] ne "U13"} {
+    error "Expected the active-buzzer output on PYNQ-Z2 AR2/U13"
+}
 set project_dir [get_property DIRECTORY [current_project]]
 set reports_dir [file join $project_dir phase11_reports]
 file mkdir $reports_dir
@@ -42,6 +46,9 @@ check_timing -verbose -file [file join $reports_dir check_timing.rpt]
 report_cdc -details -file [file join $reports_dir cdc.rpt]
 report_drc -file [file join $reports_dir drc.rpt]
 report_io -file [file join $reports_dir io.rpt]
+set f [open [file join $reports_dir buzzer_endpoint.tsv] w]
+puts $f "buzzer_pulse_o\t[get_property PACKAGE_PIN $buzzer_port]\t100MHz one-shot output"
+close $f
 report_utilization -hierarchical -file [file join $reports_dir utilization.rpt]
 close_project
 exit

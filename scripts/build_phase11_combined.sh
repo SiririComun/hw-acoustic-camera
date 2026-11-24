@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build PYNQ v3.1.2 Base with continuous PCM and the PL HDMI marker overlay.
+# Build PYNQ v3.1.2 Base with PCM, the PL HDMI marker, and AR2 buzzer pulse.
 set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 2 ]]; then
@@ -124,6 +124,9 @@ PCM control AXI-Lite: 0x43C80000
 Marker GPIO AXI-Lite: 0x43C90000
 PL video marker: acoustic_video_marker after pixel_unpack and before HDMI OUT
 Marker shape: square range check; radius is half-width and half-height in pixels
+Active buzzer output: AR2/U13, AXI-Lite base 0x43CA0000, one-shot at FCLK3 100 MHz
+Active buzzer pulse default: 5 ms (500000 FCLK3 cycles); command is not periodic
+Active buzzer registers: command 0x00, width 0x04, status 0x08, start tick 0x0C/0x10
 Marker CDC: two ASYNC_REG stages; false path only from FCLK3 to first-stage D pins
 Marker CDC report: see phase11_reports/cdc.rpt; source-to-sync path is excluded intentionally
 DMA AXI-Lite: 0x40400000

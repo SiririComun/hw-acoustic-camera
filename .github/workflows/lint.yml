@@ -38,5 +38,6 @@ jobs:
           ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_decimator.vhd
           ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_channel_demux.vhd
           ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_spectral_mask.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_buzzer_pulse.vhd
           
           echo "✅ All custom VHDL RTL cores passed syntax verification cleanly!"

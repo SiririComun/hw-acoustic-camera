@@ -8,6 +8,7 @@ set project_path [file normalize $project_path]
 set hw_repo [file normalize $hw_repo]
 
 foreach path [list \
+    [file join $hw_repo src hdl acoustic_buzzer_pulse.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_clock.vhd] \
     [file join $hw_repo src hdl acoustic_pcm_filter_pkg.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_filter.vhd] \
@@ -15,6 +16,7 @@ foreach path [list \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_registers.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_control.vhd] \
     [file join $hw_repo src hdl acoustic_video_marker.vhd] \
+    [file join $hw_repo src con pynq_z2_buzzer.xdc] \
     [file join $hw_repo src con pynq_z2_pcm.xdc] \
     [file join $hw_repo src con pynq_z2_pcm_continuous_timing.xdc]] {
     if {![file isfile $path]} {error "Missing phase-7 PCM source: $path"}
@@ -44,6 +46,7 @@ if {[llength $pmod_b_port] != 1} {error "Expected the PYNQ Base Pmod B port"}
 delete_bd_objs $pmod_b_port
 
 add_files -norecurse [list \
+    [file join $hw_repo src hdl acoustic_buzzer_pulse.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_clock.vhd] \
     [file join $hw_repo src hdl acoustic_pcm_filter_pkg.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_filter.vhd] \
@@ -77,7 +80,9 @@ set_property -dict [list \
     CONFIG.c_s2mm_burst_size 16 \
     CONFIG.c_sg_include_stscntrl_strm 0] $dma
 set lite_connect [create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc_pcm_lite]
-set_property -dict [list CONFIG.NUM_SI 1 CONFIG.NUM_MI 2] $lite_connect
+set_property -dict [list CONFIG.NUM_SI 1 CONFIG.NUM_MI 3] $lite_connect
+set buzzer [create_bd_cell -type module -reference acoustic_buzzer_pulse acoustic_buzzer_pulse]
+make_bd_pins_external -name buzzer_pulse_o [get_bd_pins $buzzer/buzzer_pulse_o]
 
 make_bd_pins_external -name pdm_clk_o [get_bd_pins $control/pdm_clk_o]
 make_bd_pins_external -name pdm_data_i [get_bd_pins $control/pdm_data_i]
@@ -88,6 +93,8 @@ connect_bd_intf_net [get_bd_intf_pins $lite_connect/M00_AXI] \
     [get_bd_intf_pins $control/s_axi]
 connect_bd_intf_net [get_bd_intf_pins $lite_connect/M01_AXI] \
     [get_bd_intf_pins $dma/S_AXI_LITE]
+connect_bd_intf_net [get_bd_intf_pins $lite_connect/M02_AXI] \
+    [get_bd_intf_pins $buzzer/S_AXI]
 connect_bd_intf_net [get_bd_intf_pins $control/m_axis] \
     [get_bd_intf_pins $dma/S_AXIS_S2MM]
 connect_bd_intf_net [get_bd_intf_pins /axi_mem_intercon/S02_AXI] \
@@ -105,6 +112,7 @@ connect_bd_net $clk3 \
     [get_bd_pins $lite_connect/aclk] \
     [get_bd_pins $control/aclk] \
     [get_bd_pins $dma/s_axi_lite_aclk] \
+    [get_bd_pins $buzzer/aclk] \
     [get_bd_pins $dma/m_axi_s2mm_aclk] \
     [get_bd_pins $dma/m_axi_sg_aclk] \
     [get_bd_pins /axi_mem_intercon/S02_ACLK] \
@@ -116,6 +124,7 @@ connect_bd_net $reset3 \
     [get_bd_pins $lite_connect/aresetn] \
     [get_bd_pins $control/aresetn] \
     [get_bd_pins $dma/axi_resetn] \
+    [get_bd_pins $buzzer/aresetn] \
     [get_bd_pins /axi_mem_intercon/S02_ARESETN] \
     [get_bd_pins /axi_mem_intercon/S03_ARESETN]
 
@@ -134,6 +143,8 @@ if {[llength $control_reg] != 1} {error "PCM control register segment is missing
 assign_bd_address -offset 0x43C80000 -range 64K $control_reg -force
 assign_bd_address -offset 0x40400000 -range 64K \
     [get_bd_addr_segs $dma/S_AXI_LITE/Reg] -force
+assign_bd_address -offset 0x43CA0000 -range 64K \
+    [get_bd_addr_segs $buzzer/S_AXI/Reg] -force
 
 # PCM uses HP2; video VDMA remains isolated on HP0. Map both the payload and
 # descriptor fetch address spaces onto the same PS DDR window behind HP2.
@@ -150,6 +161,7 @@ write_bd_tcl -force [file join [file dirname $project_path] phase11_base_pcm_rep
 # Add the accepted pin map and scoped PCM timing/CDC constraints. The external
 # build harness must first remove the original Base Pmod B package constraints.
 add_files -fileset constrs_1 -norecurse [list \
+    [file join $hw_repo src con pynq_z2_buzzer.xdc] \
     [file join $hw_repo src con pynq_z2_pcm.xdc] \
     [file join $hw_repo src con pynq_z2_pcm_continuous_timing.xdc]]
 set_property USED_IN_SYNTHESIS false \

@@ -144,9 +144,9 @@ set marker_gpio [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 acoust
 set_property -dict [list CONFIG.C_ALL_OUTPUTS 1 CONFIG.C_GPIO_WIDTH 32] $marker_gpio
 current_bd_instance /
 set marker_lite [require_cell /axi_smc_pcm_lite]
-set_property CONFIG.NUM_MI 3 $marker_lite
+set_property CONFIG.NUM_MI 4 $marker_lite
 connect_bd_intf_net -boundary_type both \
-    [get_bd_intf_pins /axi_smc_pcm_lite/M02_AXI] \
+    [get_bd_intf_pins /axi_smc_pcm_lite/M03_AXI] \
     [get_bd_intf_pins $marker_gpio/S_AXI]
 connect_bd_net -boundary_type both \
     [get_bd_pins $marker_gpio/gpio_io_o] \
@@ -175,7 +175,7 @@ foreach name [get_bd_intf_ports -quiet] {
 foreach name [get_bd_ports -quiet] {
     set intf_parent [get_bd_intf_ports -quiet -of_objects $name]
     if {[llength $intf_parent] != 0} {continue}
-    if {[get_property NAME $name] ni {pdm_clk_o pdm_data_i hdmi_out_hpd}} {
+    if {[get_property NAME $name] ni {pdm_clk_o pdm_data_i buzzer_pulse_o hdmi_out_hpd}} {
         delete_bd_objs $name
     }
 }
@@ -194,7 +194,8 @@ foreach path $forbidden {
 }
 foreach required {/ps7_0 /video /video/hdmi_out /video/axi_vdma \
                  /video/hdmi_out/acoustic_video_marker /acoustic_capture_0 \
-                 /video/acoustic_marker_gpio /axi_dma_audio /axi_mem_intercon} {
+                 /video/acoustic_marker_gpio /acoustic_buzzer_pulse \
+                 /axi_dma_audio /axi_mem_intercon} {
     require_cell $required
 }
 if {[get_property CONFIG.NUM_MI $ps_lite] != 3 ||
