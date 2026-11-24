@@ -62,10 +62,12 @@ architecture rtl of acoustic_video_marker is
     signal stage_user : std_logic_vector(0 downto 0) := (others => '0');
     signal stage_last : std_logic := '0';
     signal pixel_data : std_logic_vector(23 downto 0);
+    signal s_axis_ready_int : std_logic;
 begin
     -- One-beat elastic stage breaks the coordinate/color path before HDMI and
     -- propagates backpressure without dropping or duplicating pixels.
-    s_axis_tready <= (not stage_valid) or m_axis_tready;
+    s_axis_ready_int <= (not stage_valid) or m_axis_tready;
+    s_axis_tready <= s_axis_ready_int;
     m_axis_tvalid <= stage_valid;
     m_axis_tdata <= stage_data;
     m_axis_tkeep <= stage_keep;
@@ -73,7 +75,7 @@ begin
     m_axis_tuser <= stage_user;
     m_axis_tlast <= stage_last;
 
-    process(all)
+    process(frame_cfg, s_axis_tuser, marker_cfg_i, x_count, y_count, s_axis_tdata)
         variable cfg : std_logic_vector(31 downto 0);
         variable x_now, y_now : integer range 0 to 1023;
         variable center_x, center_y, radius : integer range 0 to 1023;
@@ -123,7 +125,7 @@ begin
                 stage_user <= (others => '0');
                 stage_last <= '0';
             else
-                if s_axis_tready = '1' then
+                if s_axis_ready_int = '1' then
                     stage_valid <= s_axis_tvalid;
                     if s_axis_tvalid = '1' then
                         stage_data <= pixel_data;
@@ -134,7 +136,7 @@ begin
                     end if;
                 end if;
 
-                if s_axis_tvalid = '1' and s_axis_tready = '1' then
+                if s_axis_tvalid = '1' and s_axis_ready_int = '1' then
                     if s_axis_tuser(0) = '1' then
                         frame_cfg <= marker_cfg_i;
                         if s_axis_tlast = '1' then
