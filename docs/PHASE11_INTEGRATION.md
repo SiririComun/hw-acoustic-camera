@@ -143,12 +143,22 @@ PL la coordenada proyectada y la habilitación. El PL aplica el punto al flujo
 de píxeles antes de HDMI OUT. El PCM crudo y su DMA no se alteran.
 
 El runner conserva el backend PS usado en el BIT/HWH aceptado. El candidato
-nuevo se seleccionaría explícitamente con `--marker-backend pl`; el HWH debe
-exponer `acoustic_marker_gpio`. El PNG de depuración representa el framebuffer
-PS sin el punto PL y registra por separado la coordenada solicitada.
+nuevo se selecciona explícitamente con `--marker-backend pl`; el HWH expone
+`acoustic_marker_gpio` en `0x43C90000`. El marcador es una caja cuadrada roja
+con radio configurable. El PNG de depuración representa el framebuffer PS sin
+el punto PL y registra por separado la coordenada solicitada.
 
-**Estado:** fuente RTL, conexión Tcl y control SW preparados, pero el candidato
-no se ha construido, sintetizado, cargado ni observado en monitor. La prueba de
-color, sincronía de cuadro, temporización AXI y convivencia PCM/video queda
-pendiente. Este cambio no traslada al PL la detección tonal, la fase ni el AoA;
-esas funciones siguen en PS y la calibración física continúa pendiente.
+**Build PC completado:**
+[`builds/phase11-combined-pl-marker-20261123-r5`](../../builds/phase11-combined-pl-marker-20261123-r5/)
+contiene el par BIT/HWH, el manifiesto, logs y reportes. Vivado 2024.2.2
+completó generación de bitstream con 0 errores DRC. `check_timing` pasó con
+WNS `+0.385 ns`, TNS `0` y cero endpoints setup fallidos. El XDC excluye solo
+FCLK3→primera etapa del sincronizador GPIO/video; report_cdc reconoce 27
+cruces `CDC-3` sincronizados. Las rutas internas del marcador en FCLK1 cumplen
+timing. La lógica reduce el comparador por píxel a cuatro rangos de coordenadas.
+
+**Pendiente de placa:** no se cargó ni observó este BIT/HWH. Mañana se debe
+comprobar alimentación real, cargar esta pareja con `--marker-backend pl` y
+verificar color/posición/ritmo en HDMI, además de convivencia con PCM. No se
+mide aún mejora real de latencia. Detección tonal, fase, AoA y proyección siguen
+en PS; calibración angular física y precisión permanecen pendientes.

@@ -206,6 +206,15 @@ if {[get_property CONFIG.NUM_MI $ps_lite] != 3 ||
     error "The pruned AXI/video configuration does not match the minimal candidate"
 }
 
+# The marker GPIO config is sampled through two ASYNC_REG stages in the pixel
+# clock domain. Exclude only the asynchronous paths into the first stage.
+set marker_cdc_xdc [file normalize [file join [file dirname [info script]] .. src con phase11_marker_cdc.xdc]]
+if {![file isfile $marker_cdc_xdc]} {error "Missing marker CDC constraints: $marker_cdc_xdc"}
+add_files -fileset constrs_1 -norecurse $marker_cdc_xdc
+set marker_cdc_file [get_files -quiet $marker_cdc_xdc]
+if {[llength $marker_cdc_file] != 1} {error "Expected one marker CDC constraints file"}
+set_property USED_IN_SYNTHESIS false $marker_cdc_file
+
 write_bd_tcl -force [file join [file dirname $project_path] phase11_camera_minimal.tcl]
 close_project
 exit
