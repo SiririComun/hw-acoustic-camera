@@ -14,6 +14,7 @@ foreach path [list \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_capture.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_registers.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_control.vhd] \
+    [file join $hw_repo src hdl acoustic_video_marker.vhd] \
     [file join $hw_repo src con pynq_z2_pcm.xdc] \
     [file join $hw_repo src con pynq_z2_pcm_continuous_timing.xdc]] {
     if {![file isfile $path]} {error "Missing phase-7 PCM source: $path"}

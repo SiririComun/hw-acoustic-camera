@@ -131,3 +131,24 @@ No se exige eliminar todos los warnings de Vivado. Sí se revisa el reporte CDC
 para atender cruces que representen un riesgo funcional para esta combinación;
 las clasificaciones restantes se documentan sin perseguir una etiqueta
 CDC-clean por sí sola.
+
+## Candidato de composición del punto en PL (2026-11-23)
+
+Como preparación independiente de la placa, el repositorio ahora contiene un
+candidato que inserta `acoustic_video_marker` después de
+`video/hdmi_out/pixel_unpack/stream_out_24` y antes del registro AXI-Stream de
+HDMI OUT, donde cada beat representa un píxel de 24 bits. El PS sigue leyendo la C920 por UVC y escribe el
+cuadro sin modificar a DDR; una palabra de AXI GPIO (`0x43C90000`) entrega al
+PL la coordenada proyectada y la habilitación. El PL aplica el punto al flujo
+de píxeles antes de HDMI OUT. El PCM crudo y su DMA no se alteran.
+
+El runner conserva el backend PS usado en el BIT/HWH aceptado. El candidato
+nuevo se seleccionaría explícitamente con `--marker-backend pl`; el HWH debe
+exponer `acoustic_marker_gpio`. El PNG de depuración representa el framebuffer
+PS sin el punto PL y registra por separado la coordenada solicitada.
+
+**Estado:** fuente RTL, conexión Tcl y control SW preparados, pero el candidato
+no se ha construido, sintetizado, cargado ni observado en monitor. La prueba de
+color, sincronía de cuadro, temporización AXI y convivencia PCM/video queda
+pendiente. Este cambio no traslada al PL la detección tonal, la fase ni el AoA;
+esas funciones siguen en PS y la calibración física continúa pendiente.

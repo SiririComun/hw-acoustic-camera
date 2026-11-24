@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build PYNQ v3.1.2 Base with the continuous four-channel PCM subsystem.
+# Build PYNQ v3.1.2 Base with continuous PCM and the PL HDMI marker overlay.
 set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 2 ]]; then
@@ -121,11 +121,14 @@ Vivado: $(vivado -version | head -1)
 HW repository commit: $(git -C "$HW_REPO" rev-parse HEAD)
 PCM source: acoustic_pdm_pcm_continuous_control
 PCM control AXI-Lite: 0x43C80000
+Marker GPIO AXI-Lite: 0x43C90000
+PL video marker: acoustic_video_marker after pixel_unpack and before HDMI OUT
 DMA AXI-Lite: 0x40400000
 Minimal Block Design: PS7, HDMI OUT/VDMA on HP0, four-channel PCM/DMA on HP2
 Removed: HDMI IN, four MicroBlaze IOPs, trace analyzers, and unused Base peripherals
 PCM DDR path: HP2 at FCLK3 (100 MHz); video VDMA remains on HP0
 Pmod B: reserved for PDM pins defined by pynq_z2_pcm.xdc
 Physical AoA calibration: pending; not accepted by this build
+PL marker candidate: not board-validated by this build
 EOF
 echo "Combined candidate written to $BUILD_ROOT"
