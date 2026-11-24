@@ -10,6 +10,7 @@ fi
 HW_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYNQ_SOURCE="$(cd "$1" && pwd)"
 PYNQ_COMMIT="3c77124d86bab65ac7bb6beb0aa66e13c83508f2"
+PYNQ_HLS_CACHE_SOURCE="${PYNQ_HLS_CACHE_SOURCE:-$PYNQ_SOURCE/boards/ip/hls}"
 VIVADO_BIN="${VIVADO_BIN:-/home/siriricomun/tools/Xilinx/Vivado/2024.2/bin}"
 VITIS_HLS_BIN="${VITIS_HLS_BIN:-/home/siriricomun/tools/Xilinx/Vitis_HLS/2024.2/bin}"
 BUILD_ROOT="${2:-$HW_REPO/../builds/phase11-combined-$(date -u +%Y%m%dT%H%M%SZ)}"
@@ -25,6 +26,10 @@ if [[ "$actual" != "$PYNQ_COMMIT" ]]; then
     echo "Expected PYNQ $PYNQ_COMMIT, found $actual" >&2
     exit 2
 fi
+if [[ ! -d "$PYNQ_HLS_CACHE_SOURCE" ]]; then
+    echo "PYNQ HLS cache directory does not exist: $PYNQ_HLS_CACHE_SOURCE" >&2
+    exit 2
+fi
 
 mkdir -p "$BUILD_ROOT/pynq"
 git -C "$PYNQ_SOURCE" archive "$PYNQ_COMMIT" boards/Pynq-Z2/base boards/ip \
@@ -34,7 +39,8 @@ BASE="$BUILD_ROOT/pynq/boards/Pynq-Z2/base"
 # This Base Tcl source was generated with Vivado 2024.1. Permit Vivado 2024.2
 # to open and upgrade the isolated copy; the caller's PYNQ source is untouched.
 python3 - "$BASE/base.tcl" "$BASE/vivado/constraints/base.xdc" \
-    "$BASE/build_bitstream.tcl" "$BASE/build_ip.tcl" "$PYNQ_SOURCE" <<'PY'
+    "$BASE/build_bitstream.tcl" "$BASE/build_ip.tcl" \
+    "$PYNQ_HLS_CACHE_SOURCE" <<'PY'
 from pathlib import Path
 import shutil
 import sys
@@ -75,18 +81,18 @@ hls_tcl.write_text(text.replace(old, 'set ip {color_convert pixel_unpack}', 1))
 
 # The generated Base Tcl still parses the full shell before the prune pass, so
 # Vivado needs catalog metadata for its soon-to-be-removed HLS instances. Reuse
-# the already packaged IP from the pinned source checkout; never run Vitis HLS
-# for pixel_pack or either trace controller.
-source_root = Path(sys.argv[5])
+# packaged IP from the selected cache, which must correspond to the pinned
+# PYNQ commit; never run Vitis HLS for pixel_pack or either trace controller.
+hls_cache_root = Path(sys.argv[5])
 for name in ('color_convert', 'pixel_pack', 'pixel_unpack',
              'trace_cntrl_32', 'trace_cntrl_64'):
-    source_hls = source_root / 'boards/ip/hls' / name / 'solution1/impl/ip'
+    source_hls = hls_cache_root / name / 'solution1/impl/ip'
     target_hls = (Path(sys.argv[1]).parents[2] / 'ip/hls' / name
                   / 'solution1/impl/ip')
     if source_hls.is_dir():
         shutil.copytree(source_hls, target_hls, dirs_exist_ok=True)
     if name in ('color_convert', 'pixel_unpack'):
-        report = (source_root / 'boards/ip/hls' / name / 'solution1/syn/report'
+        report = (hls_cache_root / name / 'solution1/syn/report'
                   / f'{name}_csynth.rpt')
         if report.is_file():
             target_report = (Path(sys.argv[1]).parents[2] / 'ip/hls' / name
@@ -117,6 +123,7 @@ cp -r base/phase11_reports "$BUILD_ROOT/"
 sha256sum base.bit base.hwh >"$BUILD_ROOT/sha256.txt"
 cat >"$BUILD_ROOT/build-manifest.txt" <<EOF
 PYNQ commit: $PYNQ_COMMIT
+PYNQ HLS cache source: $PYNQ_HLS_CACHE_SOURCE
 Vivado: $(vivado -version | head -1)
 HW repository commit: $(git -C "$HW_REPO" rev-parse HEAD)
 PCM source: acoustic_pdm_pcm_continuous_control

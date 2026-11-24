@@ -46,7 +46,9 @@ columns are never reordered in storage or capture.
 ## Build and evidence
 
 Run `scripts/build_phase11_combined.sh` from this repository with the pinned
-PYNQ source and Vivado 2024.2. The script emits a matched `base.bit`/`base.hwh`
+PYNQ source and Vivado 2024.2. If the source checkout has no generated HLS
+packages, set `PYNQ_HLS_CACHE_SOURCE` to a package cache generated from that
+same PYNQ commit. The script emits a matched `base.bit`/`base.hwh`
 pair, timing/DRC/CDC/I/O reports, hashes, and logs. This is a PC build result;
 it does not establish that the buzzer circuit, tone frequency, pulse audibility,
 PCM identity, or physical angular response has been validated on a board.
