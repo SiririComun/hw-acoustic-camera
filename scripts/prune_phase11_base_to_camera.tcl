@@ -154,6 +154,7 @@ if {[llength $marker_axi_net] != 1} {
     error "Expected one AXI net for the marker GPIO; found $marker_axi_net"
 }
 connect_bd_intf_net -intf_net [lindex $marker_axi_net 0] \
+    [get_bd_intf_pins /video/acoustic_marker_s_axi] \
     [get_bd_intf_pins /axi_smc_pcm_lite/M02_AXI]
 set marker_cfg_net [get_bd_nets -quiet -of_objects \
     [get_bd_pins /video/hdmi_out/acoustic_marker_config]]
@@ -161,6 +162,7 @@ if {[llength $marker_cfg_net] != 1} {
     error "Expected one scalar net for the marker GPIO; found $marker_cfg_net"
 }
 connect_bd_net -net [lindex $marker_cfg_net 0] \
+    [get_bd_pins /video/hdmi_out/acoustic_marker_config] \
     [get_bd_pins $marker_gpio/gpio_io_o]
 connect_bd_net [get_bd_pins /ps7_0/FCLK_CLK3] \
     [get_bd_pins $marker_gpio/s_axi_aclk]
