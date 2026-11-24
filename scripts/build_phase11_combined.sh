@@ -123,6 +123,9 @@ PCM source: acoustic_pdm_pcm_continuous_control
 PCM control AXI-Lite: 0x43C80000
 Marker GPIO AXI-Lite: 0x43C90000
 PL video marker: acoustic_video_marker after pixel_unpack and before HDMI OUT
+Marker shape: square range check; radius is half-width and half-height in pixels
+Marker CDC: two ASYNC_REG stages; false path only from FCLK3 to first-stage D pins
+Marker CDC report: see phase11_reports/cdc.rpt; source-to-sync path is excluded intentionally
 DMA AXI-Lite: 0x40400000
 Minimal Block Design: PS7, HDMI OUT/VDMA on HP0, four-channel PCM/DMA on HP2
 Removed: HDMI IN, four MicroBlaze IOPs, trace analyzers, and unused Base peripherals
