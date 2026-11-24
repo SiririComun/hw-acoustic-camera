@@ -49,7 +49,8 @@ add_files -norecurse [list \
     [file join $hw_repo src hdl acoustic_pdm_pcm_filter.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_capture.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_registers.vhd] \
-    [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_control.vhd]]
+    [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_control.vhd] \
+    [file join $hw_repo src hdl acoustic_video_marker.vhd]]
 update_compile_order -fileset sources_1
 
 set ps [get_bd_cells /ps7_0]
