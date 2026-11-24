@@ -199,12 +199,12 @@ foreach required {/ps7_0 /video /video/hdmi_out /video/axi_vdma \
     require_cell $required
 }
 if {[get_property CONFIG.NUM_MI $ps_lite] != 3 ||
-    [get_property CONFIG.NUM_MI $marker_lite] != 3 ||
+    [get_property CONFIG.NUM_MI $marker_lite] != 4 ||
     [get_property CONFIG.NUM_SI $memory_interconnect] != 2 ||
     [get_property CONFIG.NUM_MI $video_ctl] != 6 ||
     [get_property CONFIG.NUM_SI $video_mem] != 1 ||
     [get_property CONFIG.c_include_s2mm $video_vdma] != 0} {
-    error "The pruned AXI/video configuration does not match the minimal candidate"
+    error "The pruned AXI/video configuration does not match the buzzer-enabled candidate"
 }
 
 # The marker GPIO config is sampled through two ASYNC_REG stages in the pixel
