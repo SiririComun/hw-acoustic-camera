@@ -58,9 +58,6 @@ delete_cell_if_present /video/proc_sys_reset_pixelclk
 current_bd_instance /video/hdmi_out
 set marker [create_bd_cell -type module -reference acoustic_video_marker acoustic_video_marker]
 make_bd_pins_external -name acoustic_marker_config [get_bd_pins $marker/marker_cfg_i]
-current_bd_instance /video
-make_bd_pins_external -name acoustic_marker_config \
-    [get_bd_pins /video/hdmi_out/acoustic_marker_config]
 current_bd_instance /
 connect_bd_net [get_bd_pins /video/hdmi_out/clk_142M] \
     [get_bd_pins /video/hdmi_out/acoustic_video_marker/aclk]
@@ -143,20 +140,24 @@ set_property -dict [list \
     CONFIG.PCW_I2C1_PERIPHERAL_ENABLE 0] $ps
 
 # One 32-bit GPIO write updates marker enable, x, y and radius together.
+current_bd_instance /video
 set marker_gpio [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 acoustic_marker_gpio]
 set_property -dict [list CONFIG.C_ALL_OUTPUTS 1 CONFIG.C_GPIO_WIDTH 32] $marker_gpio
+make_bd_intf_pins_external -name acoustic_marker_s_axi \
+    [get_bd_intf_pins $marker_gpio/S_AXI]
+current_bd_instance /
 set marker_lite [require_cell /axi_smc_pcm_lite]
 set_property CONFIG.NUM_MI 3 $marker_lite
 connect_bd_intf_net [get_bd_intf_pins /axi_smc_pcm_lite/M02_AXI] \
-    [get_bd_intf_pins /acoustic_marker_gpio/S_AXI]
-connect_bd_net [get_bd_pins /acoustic_marker_gpio/gpio_io_o] \
-    [get_bd_pins /video/acoustic_marker_config]
+    [get_bd_intf_pins /video/acoustic_marker_s_axi]
+connect_bd_net [get_bd_pins $marker_gpio/gpio_io_o] \
+    [get_bd_pins /video/hdmi_out/acoustic_marker_config]
 connect_bd_net [get_bd_pins /ps7_0/FCLK_CLK3] \
-    [get_bd_pins /acoustic_marker_gpio/s_axi_aclk]
+    [get_bd_pins $marker_gpio/s_axi_aclk]
 connect_bd_net [get_bd_pins /rst_ps7_0_fclk3/peripheral_aresetn] \
-    [get_bd_pins /acoustic_marker_gpio/s_axi_aresetn]
+    [get_bd_pins $marker_gpio/s_axi_aresetn]
 assign_bd_address -offset 0x43C90000 -range 64K \
-    [get_bd_addr_segs /acoustic_marker_gpio/S_AXI/Reg] -force
+    [get_bd_addr_segs $marker_gpio/S_AXI/Reg] -force
 
 # Drop HDMI IN hierarchy ports and all unneeded external Base interfaces.
 foreach path {/video/TMDS_in /video/DDC} {
@@ -194,7 +195,7 @@ foreach path $forbidden {
 }
 foreach required {/ps7_0 /video /video/hdmi_out /video/axi_vdma \
                  /video/hdmi_out/acoustic_video_marker /acoustic_capture_0 \
-                 /acoustic_marker_gpio /axi_dma_audio /axi_mem_intercon} {
+                 /video/acoustic_marker_gpio /axi_dma_audio /axi_mem_intercon} {
     require_cell $required
 }
 if {[get_property CONFIG.NUM_MI $ps_lite] != 3 ||
