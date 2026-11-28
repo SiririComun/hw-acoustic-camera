@@ -5,6 +5,13 @@ accepted PS configuration, AXI SmartConnect, reset infrastructure and the
 `acoustic_capture_0` module reference at `0x43C00000`. This design implements clock
 and control only; microphone DATA capture, FIFO, DMA and PCM start in later phases.
 
+> **Flujo histórico:** los scripts del diseño autónomo de fase 2 se conservaron
+> en el archivo heredado:
+> [`create_pdm_clock_control_bd.tcl`](../archive/legacy-hw/scripts/create_pdm_clock_control_bd.tcl)
+> y [`implement_pdm_clock_control.tcl`](../archive/legacy-hw/scripts/implement_pdm_clock_control.tcl).
+> No están en las rutas ejecutables actuales. El flujo combinado vigente parte
+> de PYNQ Base y se describe en [Phase 11 integration](PHASE11_INTEGRATION.md).
+
 ## Clock and interface
 
 - AXI/control remains at 100 MHz from PS FCLK0.
@@ -44,9 +51,10 @@ time; committing that snapshot does not change its historical provenance.
 - HWH SHA-256: `e04547331973c393c34121e41bf08df394178668c03a76e22080b12329f94901`
 - SW wheel source commit: `6ad1acb49555d8b332dad2d8d2712f07a84b6ff5`
 
-`scripts/create_pdm_clock_control_bd.tcl` creates and synthesizes the separate BD.
-`scripts/implement_pdm_clock_control.tcl` implements an existing generated project
-and exports the matching BIT/HWH. Neither script programs a board.
+The archived `create_pdm_clock_control_bd.tcl` creates and synthesizes the
+separate BD. The archived `implement_pdm_clock_control.tcl` implements an
+existing generated project and exports the matching BIT/HWH. Neither script
+programs a board.
 
 ## Board validation and mechanical connection
 

@@ -1,5 +1,15 @@
 # Phase 4.4: integrated RAW/PCM acquisition
 
+> **Historical procedure:** this record describes the standalone Phase 4 Block
+> Design. Its simulation and BD creation scripts are archived at
+> [`simulate_pdm_pcm_capture.py`](../archive/legacy-hw/scripts/simulate_pdm_pcm_capture.py)
+> and [`create_pdm_pcm_capture_bd.tcl`](../archive/legacy-hw/scripts/create_pdm_pcm_capture_bd.tcl);
+> the standalone timing constraint is
+> [`pynq_z2_pcm_timing.xdc`](../archive/legacy-hw/src/con/pynq_z2_pcm_timing.xdc).
+> The commands below document that historical flow and do not run from the
+> current repository paths. The active combined camera flow is documented in
+> [Phase 11 integration](PHASE11_INTEGRATION.md).
+
 The new `pdm_pcm_capture.bd` uses `acoustic_pdm_pcm_control` as module reference
 `acoustic_capture_0`. It retains the control and stream IP names required by the
 contract, and introduces BUILD_ID `B691CC9C9F6249AD938D2063E4767C54`, ABI 1.0 and

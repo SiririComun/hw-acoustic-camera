@@ -26,18 +26,22 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ghdl
 
-      - name: Run VHDL-93 Syntax Check
+      - name: Run VHDL-93 Syntax Check on Active Camera RTL
         run: |
           echo "========================================================"
           echo " Running Fast-Fail VHDL Syntax Check on Custom RTL Cores"
           echo "========================================================"
           
           # -C allows UTF-8 / non-ASCII characters in comments (bullets, arrows, etc.)
-          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/tlast_generator.vhd
-          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_trigger_unit.vhd
-          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_decimator.vhd
-          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_channel_demux.vhd
-          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/axis_spectral_mask.vhd
           ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_buzzer_pulse.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pdm_clock.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pcm_filter_pkg.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pdm_pcm_filter.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pdm_pcm_continuous_capture.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pdm_pcm_continuous_registers.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pdm_pcm_continuous_control.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pcm_axis_tee.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_pcm_iq_tracker.vhd
+          ghdl -s --std=93 -C --ieee=synopsys -fexplicit src/hdl/acoustic_video_marker.vhd
           
           echo "✅ All custom VHDL RTL cores passed syntax verification cleanly!"

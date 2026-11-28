@@ -36,7 +36,7 @@ Thumbs.db
 ## MISCELLANEA
 **.tmp
 !/.gitignore
-bin
+bin/
 gitk
 *~
 **.pyc
@@ -108,7 +108,6 @@ vivado.jou
 .Xil/
 Projects/
 SimulationLib/
-bin/
 bd/ui/
 *.log
 *.jou
@@ -116,7 +115,7 @@ bd/ui/
 *.rst
 .write_bitstream.error.rst
 
-# Vivado Block Design generated outputs (Keep only src/bd/xadc.bd)
+# Vivado Block Design generated outputs. Keep the committed source designs.
 src/bd/hdl/
 src/bd/hw_handoff/
 src/bd/ip/
@@ -128,15 +127,18 @@ src/bd/*.bmj
 src/bd/*.bxml
 src/bd/*_bmstub.v
 src/bd/*_ooc.xdc
+archive/legacy-hw/src/bd/hdl/
+archive/legacy-hw/src/bd/hw_handoff/
+archive/legacy-hw/src/bd/ip/
+archive/legacy-hw/src/bd/ipshared/
+archive/legacy-hw/src/bd/sim/
+archive/legacy-hw/src/bd/synth/
+archive/legacy-hw/src/bd/*.bda
+archive/legacy-hw/src/bd/*.bmj
+archive/legacy-hw/src/bd/*.bxml
+archive/legacy-hw/src/bd/*_bmstub.v
+archive/legacy-hw/src/bd/*_ooc.xdc
+*.pb
+xsim.dir/
 
-# Selected release files; other bin outputs remain ignored. Already tracked
-# legacy BIT/HWH are references, never inputs of scripts/build_reference.py.
-!/bin/
-/bin/*
-!/bin/pynq_z2.bit
-!/bin/pynq_z2.hwh
-!/bin/build-manifest.json
 /builds/
-
-!/bin/implementation-review.json
-!/bin/SHA256SUMS.txt

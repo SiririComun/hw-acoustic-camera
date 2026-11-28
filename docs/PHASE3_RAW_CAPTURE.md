@@ -1,5 +1,15 @@
 # Phase 3 RAW capture — source, FIFO and stream core
 
+> **Historical procedure:** this record describes the standalone Phase 3 flow.
+> Its runner, Block Design scripts and RAW timing constraint are archived at
+> [`simulate_pdm_raw_source.py`](../archive/legacy-hw/scripts/simulate_pdm_raw_source.py),
+> [`create_pdm_raw_capture_bd.tcl`](../archive/legacy-hw/scripts/create_pdm_raw_capture_bd.tcl),
+> [`build_pdm_raw_capture.tcl`](../archive/legacy-hw/scripts/build_pdm_raw_capture.tcl)
+> and [`pynq_z2_raw_timing.xdc`](../archive/legacy-hw/src/con/pynq_z2_raw_timing.xdc).
+> The commands below document that historical flow and do not run from the
+> current repository paths. The active combined camera flow is documented in
+> [Phase 11 integration](PHASE11_INTEGRATION.md).
+
 Step 3.2 implements the reusable sampling source; step 3.3 adds and simulates
 the finite-block producer, FIFO, AXI Stream, counters and errors. The accepted
 board overlay is still phase-2 clock/control. AXI-Lite/DMA integration and the

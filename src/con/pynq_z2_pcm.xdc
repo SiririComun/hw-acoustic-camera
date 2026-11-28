@@ -1,5 +1,5 @@
 # Phase-4 RAW/PCM candidate pinout, PYNQ-Z2 Pmod B.
-# External sample timing and the generated output clock are in pynq_z2_pcm_timing.xdc.
+# External sample timing and the generated output clock are constrained in pynq_z2_pcm_continuous_timing.xdc.
 set_property PACKAGE_PIN W14 [get_ports pdm_clk_o]
 set_property IOSTANDARD LVCMOS33 [get_ports pdm_clk_o]
 

@@ -41,8 +41,17 @@ accuracy claim follows from a red marker or a synthetic test.
 With the pinned PYNQ v3.1.2 source checkout and Vivado 2024.2 installed:
 
 ```bash
-scripts/build_phase11_combined.sh /path/to/PYNQ-v3.1.2 [output-directory]
+PYNQ_SOURCE=/path/to/PYNQ-v3.1.2
+OUTPUT_DIR=../../acoustic-camera/builds/phase11-combined-$(date -u +%Y%m%dT%H%M%SZ)
+scripts/build_phase11_combined.sh "$PYNQ_SOURCE" "$OUTPUT_DIR"
 ```
+
+Run this from the HW repository root. The output path is relative to the
+invocation directory; when using a worktree under `acoustic-camera-worktrees/`,
+the example keeps generated projects, bitstreams and reports in the main
+workspace's `acoustic-camera/builds/` directory instead of creating a separate
+`acoustic-camera-worktrees/builds/` tree. The script also accepts an explicit
+absolute output path.
 
 The script creates an isolated source copy, adjusts only that copy for Vivado
 2024.2, reuses the packaged HDMI OUT HLS cores, adds PCM, then prunes unused
@@ -97,7 +106,7 @@ centered at pixel `(309, 408)`. This matches the direct projection of the
 with the configured provisional 70° × 50° camera FOV. No pixel coordinate was
 forced. The frame is the same buffer submitted to HDMI OUT; no HDMI IN capture
 or monitor was required. The image and full run report are in
-[`board-live evidence`](../../evidence/phase-11/board-live-20261122T204730Z/README.md).
+[`board-live evidence`](../../../acoustic-camera/evidence/phase-11/board-live-20261122T204730Z/README.md).
 
 These values show the frame path and an AoA-driven red marker working; they do
 not establish the physical location of the PC speaker. The assumed 50 × 50 mm
@@ -132,24 +141,31 @@ para atender cruces que representen un riesgo funcional para esta combinación;
 las clasificaciones restantes se documentan sin perseguir una etiqueta
 CDC-clean por sí sola.
 
-## Candidato de composición del punto en PL (2026-11-23)
+## Histórico: primer candidato de composición del punto en PL (2026-11-23)
 
-Como preparación independiente de la placa, el repositorio ahora contiene un
-candidato que inserta `acoustic_video_marker` después de
+> Esta sección registra el snapshot R5 del 23 de noviembre de 2026: un único
+> marcador rojo cuadrado. No describe el RTL PL actual. El tracker AOA3 y los
+> dos marcadores radiales independientes (PDoA rojo, TDoA cian) están descritos
+> en [PL PDoA/TDoA](PL_PDOA_TDOA.md). El BIT/HWH AOA3 está generado, pero su
+> marcador PL todavía no cuenta con validación en placa.
+
+En ese snapshot, el repositorio contenía un candidato que insertaba
+`acoustic_video_marker` después de
 `video/hdmi_out/pixel_unpack/stream_out_24` y antes del registro AXI-Stream de
 HDMI OUT, donde cada beat representa un píxel de 24 bits. El PS sigue leyendo la C920 por UVC y escribe el
 cuadro sin modificar a DDR; una palabra de AXI GPIO (`0x43C90000`) entrega al
 PL la coordenada proyectada y la habilitación. El PL aplica el punto al flujo
 de píxeles antes de HDMI OUT. El PCM crudo y su DMA no se alteran.
 
-El runner conserva el backend PS usado en el BIT/HWH aceptado. El candidato
-nuevo se selecciona explícitamente con `--marker-backend pl`; el HWH expone
-`acoustic_marker_gpio` en `0x43C90000`. El marcador es una caja cuadrada roja
-con radio configurable. El PNG de depuración representa el framebuffer PS sin
-el punto PL y registra por separado la coordenada solicitada.
+En ese snapshot, el runner conservaba el backend PS usado en el BIT/HWH
+aceptado y seleccionaba este candidato con `--marker-backend pl`. El HWH
+exponía `acoustic_marker_gpio` en `0x43C90000`. El marcador era una caja
+cuadrada roja con radio configurable. El PNG de depuración representaba el
+framebuffer PS sin el punto PL y registraba por separado la coordenada
+solicitada.
 
-**Build PC completado:**
-[`builds/phase11-combined-pl-marker-20261123-r5`](../../builds/phase11-combined-pl-marker-20261123-r5/)
+**Build R5 de PC completado (resultado histórico):**
+[`builds/phase11-combined-pl-marker-20261123-r5`](../../../acoustic-camera/builds/phase11-combined-pl-marker-20261123-r5/)
 contiene el par BIT/HWH, el manifiesto, logs y reportes. Vivado 2024.2.2
 completó generación de bitstream con 0 errores DRC. `check_timing` pasó con
 WNS `+0.385 ns`, TNS `0` y cero endpoints setup fallidos. El XDC excluye solo
@@ -157,8 +173,10 @@ FCLK3→primera etapa del sincronizador GPIO/video; report_cdc reconoce 27
 cruces `CDC-3` sincronizados. Las rutas internas del marcador en FCLK1 cumplen
 timing. La lógica reduce el comparador por píxel a cuatro rangos de coordenadas.
 
-**Pendiente de placa:** no se cargó ni observó este BIT/HWH. Mañana se debe
-comprobar alimentación real, cargar esta pareja con `--marker-backend pl` y
-verificar color/posición/ritmo en HDMI, además de convivencia con PCM. No se
-mide aún mejora real de latencia. Detección tonal, fase, AoA y proyección siguen
-en PS; calibración angular física y precisión permanecen pendientes.
+**Estado físico de R5:** el BIT/HWH se descargó y PYNQ reconoció el overlay en
+dos arranques de placa el 24 de noviembre de 2026. En ambos, el runner terminó
+antes de iniciar la captura de cámara o HDMI; no llegó a mostrar ni validar el
+marcador. El resultado y las excepciones están registrados en
+[`results.md`](../../../acoustic-camera/evidence/final-part-02/pl-marker-board-live-20261124T141632Z/results.md).
+La compilación AOA3 posterior se documenta en [PL PDoA/TDoA](PL_PDOA_TDOA.md);
+la calibración AoA y la validación visual de HDMI siguen pendientes.
