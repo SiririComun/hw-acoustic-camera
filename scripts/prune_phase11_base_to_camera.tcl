@@ -138,19 +138,25 @@ set_property -dict [list \
     CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE 0 \
     CONFIG.PCW_I2C1_PERIPHERAL_ENABLE 0] $ps
 
-# One 32-bit GPIO write updates marker enable, x, y and radius together.
+# Dual-channel GPIO carries one atomic 32-bit PS configuration word per marker.
 current_bd_instance /video
 set marker_gpio [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 acoustic_marker_gpio]
-set_property -dict [list CONFIG.C_ALL_OUTPUTS 1 CONFIG.C_GPIO_WIDTH 32] $marker_gpio
+set_property -dict [list \
+    CONFIG.C_IS_DUAL 1 \
+    CONFIG.C_ALL_OUTPUTS 1 CONFIG.C_GPIO_WIDTH 32 \
+    CONFIG.C_ALL_OUTPUTS_2 1 CONFIG.C_GPIO2_WIDTH 32] $marker_gpio
 current_bd_instance /
 set marker_lite [require_cell /axi_smc_pcm_lite]
-set_property CONFIG.NUM_MI 4 $marker_lite
+set_property CONFIG.NUM_MI 5 $marker_lite
 connect_bd_intf_net -boundary_type both \
-    [get_bd_intf_pins /axi_smc_pcm_lite/M03_AXI] \
+    [get_bd_intf_pins /axi_smc_pcm_lite/M04_AXI] \
     [get_bd_intf_pins $marker_gpio/S_AXI]
 connect_bd_net -boundary_type both \
     [get_bd_pins $marker_gpio/gpio_io_o] \
     [get_bd_pins /video/hdmi_out/acoustic_video_marker/marker_cfg_i]
+connect_bd_net -boundary_type both \
+    [get_bd_pins $marker_gpio/gpio2_io_o] \
+    [get_bd_pins /video/hdmi_out/acoustic_video_marker/marker_cfg2_i]
 connect_bd_net [get_bd_pins /ps7_0/FCLK_CLK3] \
     [get_bd_pins $marker_gpio/s_axi_aclk]
 connect_bd_net [get_bd_pins /rst_ps7_0_fclk3/peripheral_aresetn] \
@@ -195,11 +201,12 @@ foreach path $forbidden {
 foreach required {/ps7_0 /video /video/hdmi_out /video/axi_vdma \
                  /video/hdmi_out/acoustic_video_marker /acoustic_capture_0 \
                  /video/acoustic_marker_gpio /acoustic_buzzer_pulse \
+                 /acoustic_pcm_axis_tee /acoustic_pcm_iq_tracker \
                  /axi_dma_audio /axi_mem_intercon} {
     require_cell $required
 }
 if {[get_property CONFIG.NUM_MI $ps_lite] != 3 ||
-    [get_property CONFIG.NUM_MI $marker_lite] != 4 ||
+    [get_property CONFIG.NUM_MI $marker_lite] != 5 ||
     [get_property CONFIG.NUM_SI $memory_interconnect] != 2 ||
     [get_property CONFIG.NUM_MI $video_ctl] != 6 ||
     [get_property CONFIG.NUM_SI $video_mem] != 1 ||

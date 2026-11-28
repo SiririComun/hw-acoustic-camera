@@ -15,6 +15,8 @@ foreach path [list \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_capture.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_registers.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_control.vhd] \
+    [file join $hw_repo src hdl acoustic_pcm_axis_tee.vhd] \
+    [file join $hw_repo src hdl acoustic_pcm_iq_tracker.vhd] \
     [file join $hw_repo src hdl acoustic_video_marker.vhd] \
     [file join $hw_repo src con pynq_z2_buzzer.xdc] \
     [file join $hw_repo src con pynq_z2_pcm.xdc] \
@@ -53,6 +55,8 @@ add_files -norecurse [list \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_capture.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_registers.vhd] \
     [file join $hw_repo src hdl acoustic_pdm_pcm_continuous_control.vhd] \
+    [file join $hw_repo src hdl acoustic_pcm_axis_tee.vhd] \
+    [file join $hw_repo src hdl acoustic_pcm_iq_tracker.vhd] \
     [file join $hw_repo src hdl acoustic_video_marker.vhd]]
 update_compile_order -fileset sources_1
 
@@ -80,8 +84,10 @@ set_property -dict [list \
     CONFIG.c_s2mm_burst_size 16 \
     CONFIG.c_sg_include_stscntrl_strm 0] $dma
 set lite_connect [create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 axi_smc_pcm_lite]
-set_property -dict [list CONFIG.NUM_SI 1 CONFIG.NUM_MI 3] $lite_connect
+set_property -dict [list CONFIG.NUM_SI 1 CONFIG.NUM_MI 4] $lite_connect
 set buzzer [create_bd_cell -type module -reference acoustic_buzzer_pulse acoustic_buzzer_pulse]
+set axis_tee [create_bd_cell -type module -reference acoustic_pcm_axis_tee acoustic_pcm_axis_tee]
+set iq_tracker [create_bd_cell -type module -reference acoustic_pcm_iq_tracker acoustic_pcm_iq_tracker]
 make_bd_pins_external -name buzzer_pulse_o [get_bd_pins $buzzer/buzzer_pulse_o]
 
 make_bd_pins_external -name pdm_clk_o [get_bd_pins $control/pdm_clk_o]
@@ -95,8 +101,17 @@ connect_bd_intf_net [get_bd_intf_pins $lite_connect/M01_AXI] \
     [get_bd_intf_pins $dma/S_AXI_LITE]
 connect_bd_intf_net [get_bd_intf_pins $lite_connect/M02_AXI] \
     [get_bd_intf_pins $buzzer/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins $lite_connect/M03_AXI] \
+    [get_bd_intf_pins $iq_tracker/S_AXI]
 connect_bd_intf_net [get_bd_intf_pins $control/m_axis] \
+    [get_bd_intf_pins $axis_tee/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins $axis_tee/M_DMA] \
     [get_bd_intf_pins $dma/S_AXIS_S2MM]
+connect_bd_intf_net [get_bd_intf_pins $axis_tee/M_IQ] \
+    [get_bd_intf_pins $iq_tracker/S_AXIS]
+set buzzer_pulse_net [get_bd_nets -of_objects [get_bd_pins $buzzer/buzzer_pulse_o]]
+if {[llength $buzzer_pulse_net] != 1} {error "Buzzer pulse output net is missing"}
+connect_bd_net -net $buzzer_pulse_net [get_bd_pins $iq_tracker/pulse_start_i]
 connect_bd_intf_net [get_bd_intf_pins /axi_mem_intercon/S02_AXI] \
     [get_bd_intf_pins $dma/M_AXI_S2MM]
 connect_bd_intf_net [get_bd_intf_pins /axi_mem_intercon/S03_AXI] \
@@ -113,6 +128,8 @@ connect_bd_net $clk3 \
     [get_bd_pins $control/aclk] \
     [get_bd_pins $dma/s_axi_lite_aclk] \
     [get_bd_pins $buzzer/aclk] \
+    [get_bd_pins $axis_tee/aclk] \
+    [get_bd_pins $iq_tracker/aclk] \
     [get_bd_pins $dma/m_axi_s2mm_aclk] \
     [get_bd_pins $dma/m_axi_sg_aclk] \
     [get_bd_pins /axi_mem_intercon/S02_ACLK] \
@@ -125,6 +142,8 @@ connect_bd_net $reset3 \
     [get_bd_pins $control/aresetn] \
     [get_bd_pins $dma/axi_resetn] \
     [get_bd_pins $buzzer/aresetn] \
+    [get_bd_pins $axis_tee/aresetn] \
+    [get_bd_pins $iq_tracker/aresetn] \
     [get_bd_pins /axi_mem_intercon/S02_ARESETN] \
     [get_bd_pins /axi_mem_intercon/S03_ARESETN]
 
@@ -145,6 +164,8 @@ assign_bd_address -offset 0x40400000 -range 64K \
     [get_bd_addr_segs $dma/S_AXI_LITE/Reg] -force
 assign_bd_address -offset 0x43CA0000 -range 64K \
     [get_bd_addr_segs $buzzer/s_axi/reg0] -force
+assign_bd_address -offset 0x43CB0000 -range 64K \
+    [get_bd_addr_segs $iq_tracker/s_axi/reg0] -force
 
 # PCM uses HP2; video VDMA remains isolated on HP0. Map both the payload and
 # descriptor fetch address spaces onto the same PS DDR window behind HP2.

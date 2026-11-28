@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build PYNQ v3.1.2 Base with PCM, the PL HDMI marker, and AR2 buzzer pulse.
+# Build PYNQ v3.1.2 Base with PCM, PL I/Q tracking and marker, and AR2 buzzer pulse.
 set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 2 ]]; then
@@ -69,6 +69,50 @@ if text.count(needle) != 1:
 build_tcl.write_text(text.replace(
     needle, needle + 'set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE RuntimeOptimized [get_runs impl_1]\n', 1))
 
+# Vivado may retain its module-ref source override across projects. The R11
+# tracker run script used R10's generated tree and silently reused its DCP.
+# Pin the override to this build, delete both checkpoint copies, and verify the
+# regenerated OOC run after the normal Base wrapper/constraints are loaded.
+text = build_tcl.read_text()
+needle = 'launch_runs impl_1 -to_step write_bitstream -jobs 4\nwait_on_run impl_1\n'
+if text.count(needle) != 1:
+    raise SystemExit('Pinned PYNQ implementation launch commands were not found exactly once')
+preflight = '''set project_dir [file normalize ./base]
+set mref_dir [file normalize [file join $project_dir base.gen sources_1 bd mref]]
+if {![file isdirectory $mref_dir]} {error "Missing current-build module-ref directory: $mref_dir"}
+set_param ips.modRefOverrideMrefDirPath $mref_dir
+set tracker_run_name base_acoustic_pcm_iq_tracker_0_synth_1
+set tracker_run_dir [file join $project_dir base.runs $tracker_run_name]
+set tracker_run_dcp [file join $tracker_run_dir base_acoustic_pcm_iq_tracker_0.dcp]
+set tracker_gen_dcp [file join $project_dir base.gen sources_1 bd base ip base_acoustic_pcm_iq_tracker_0 base_acoustic_pcm_iq_tracker_0.dcp]
+reset_run [get_runs synth_1]
+reset_run [get_runs impl_1]
+file delete -force $tracker_run_dcp $tracker_gen_dcp
+'''
+postflight = '''
+set tracker_run [get_runs -quiet $tracker_run_name]
+if {[llength $tracker_run] != 1} {error "Vivado did not create tracker OOC run $tracker_run_name"}
+set tracker_run [lindex $tracker_run 0]
+set tracker_status [get_property STATUS $tracker_run]
+if {![string match {*Complete*} $tracker_status]} {error "Tracker OOC synthesis did not complete: $tracker_status"}
+if {![file isfile $tracker_run_dcp]} {error "Tracker OOC checkpoint is missing: $tracker_run_dcp"}
+set tracker_run_tcl [file join $tracker_run_dir base_acoustic_pcm_iq_tracker_0.tcl]
+set tracker_run_fd [open $tracker_run_tcl r]
+set tracker_run_script [read $tracker_run_fd]
+close $tracker_run_fd
+if {[string first $mref_dir $tracker_run_script] < 0} {error "Tracker OOC run used a different module-ref tree than this build"}
+set tracker_dcp_sha256 [lindex [split [exec sha256sum $tracker_run_dcp]] 0]
+if {$tracker_dcp_sha256 eq "65ca6fae023b54b87e6255a795458bf1adf95625f2936b28a09bedb6929f5621"} {error "Refusing the known stale R10 tracker checkpoint"}
+if {![file isfile $tracker_gen_dcp]} {error "Generated tracker checkpoint is missing: $tracker_gen_dcp"}
+set tracker_gen_sha256 [lindex [split [exec sha256sum $tracker_gen_dcp]] 0]
+if {$tracker_dcp_sha256 ne $tracker_gen_sha256} {error "Tracker run and generated checkpoints do not match"}
+puts "TRACKER_MREF=$mref_dir"
+puts "TRACKER_STATUS=$tracker_status"
+puts "TRACKER_DCP=$tracker_run_dcp"
+puts "TRACKER_DCP_SHA256=$tracker_dcp_sha256"
+'''
+build_tcl.write_text(text.replace(needle, preflight + needle + postflight, 1))
+
 # HDMI IN and both trace analyzers are removed from the Block Design before
 # synthesis. Only the HDMI OUT color conversion and pixel unpack HLS cores are
 # used by the retained video path.
@@ -113,7 +157,16 @@ vivado -mode batch -source "$HW_REPO/scripts/add_phase11_pcm_to_pynq_base.tcl" \
     -tclargs "$BASE/base/base.xpr" "$HW_REPO" >"$BUILD_ROOT/phase11_augmentation.log" 2>&1
 vivado -mode batch -source "$HW_REPO/scripts/prune_phase11_base_to_camera.tcl" \
     -tclargs "$BASE/base/base.xpr" >"$BUILD_ROOT/phase11_prune.log" 2>&1
+# The patched PYNQ bitstream Tcl sets the module-ref source tree and removes
+# stale tracker checkpoints immediately before its normal implementation run.
+sha256sum "$BASE/build_bitstream.tcl" >"$BUILD_ROOT/build-bitstream-tcl-sha256.txt"
+TRACKER_DCP="$BASE/base/base.runs/base_acoustic_pcm_iq_tracker_0_synth_1/base_acoustic_pcm_iq_tracker_0.dcp"
 make bitstream >"$BUILD_ROOT/bitstream.log" 2>&1
+TRACKER_DCP_SHA256="$(sha256sum "$TRACKER_DCP" | cut -d ' ' -f 1)"
+if [[ "$TRACKER_DCP_SHA256" == "65ca6fae023b54b87e6255a795458bf1adf95625f2936b28a09bedb6929f5621" ]]; then
+    echo "Refusing the known stale R10 tracker checkpoint: $TRACKER_DCP" >&2
+    exit 1
+fi
 make check_timing >"$BUILD_ROOT/check_timing.log" 2>&1
 vivado -mode batch -source "$HW_REPO/scripts/report_phase11_combined.tcl" \
     -tclargs "$BASE/base/base.xpr" >"$BUILD_ROOT/reports.log" 2>&1
@@ -121,16 +174,48 @@ vivado -mode batch -source "$HW_REPO/scripts/report_phase11_combined.tcl" \
 cp base.bit base.hwh "$BUILD_ROOT/"
 cp -r base/phase11_reports "$BUILD_ROOT/"
 sha256sum base.bit base.hwh >"$BUILD_ROOT/sha256.txt"
+git -C "$HW_REPO" status --short --branch >"$BUILD_ROOT/hw-git-status.txt"
+(
+    cd "$HW_REPO"
+    sha256sum \
+        src/hdl/acoustic_buzzer_pulse.vhd \
+        src/hdl/acoustic_pdm_clock.vhd \
+        src/hdl/acoustic_pcm_filter_pkg.vhd \
+        src/hdl/acoustic_pdm_pcm_filter.vhd \
+        src/hdl/acoustic_pdm_pcm_continuous_capture.vhd \
+        src/hdl/acoustic_pdm_pcm_continuous_registers.vhd \
+        src/hdl/acoustic_pdm_pcm_continuous_control.vhd \
+        src/hdl/acoustic_pcm_axis_tee.vhd \
+        src/hdl/acoustic_pcm_iq_tracker.vhd \
+        src/hdl/acoustic_video_marker.vhd \
+        src/con/pynq_z2_buzzer.xdc \
+        src/con/pynq_z2_pcm.xdc \
+        src/con/pynq_z2_pcm_continuous_timing.xdc \
+        src/con/phase11_marker_cdc.xdc \
+        scripts/add_phase11_pcm_to_pynq_base.tcl \
+        scripts/prune_phase11_base_to_camera.tcl \
+        scripts/report_phase11_combined.tcl \
+        scripts/build_phase11_combined.sh \
+        sim/tb_acoustic_pcm_iq_tracker.vhd \
+        sim/tb_acoustic_video_marker.vhd
+) >"$BUILD_ROOT/source-sha256.txt"
 cat >"$BUILD_ROOT/build-manifest.txt" <<EOF
 PYNQ commit: $PYNQ_COMMIT
 PYNQ HLS cache source: $PYNQ_HLS_CACHE_SOURCE
 Vivado: $(vivado -version | head -1)
+HW repository branch: $(git -C "$HW_REPO" branch --show-current)
 HW repository commit: $(git -C "$HW_REPO" rev-parse HEAD)
+HW working tree: see hw-git-status.txt; input source hashes: source-sha256.txt
 PCM source: acoustic_pdm_pcm_continuous_control
 PCM control AXI-Lite: 0x43C80000
+PL four-channel I/Q/PDoA/TDoA tracker AXI-Lite: 0x43CB0000, parallel to PCM DMA
+Tracker: PS-programmed fixed frequency/window/thresholds/geometry; PL phase, arrival, direction and pixel projection; no PCM reorder
+Tracker OOC synthesis: PYNQ implementation resets both tracker checkpoints, pins the module-ref tree to this build, verifies fresh run and generated DCPs match, and rejects the known R10 DCP
+Tracker OOC DCP SHA-256: $TRACKER_DCP_SHA256
+Patched PYNQ build_bitstream.tcl SHA-256: see build-bitstream-tcl-sha256.txt
 Marker GPIO AXI-Lite: 0x43C90000
 PL video marker: acoustic_video_marker after pixel_unpack and before HDMI OUT
-Marker shape: square range check; radius is half-width and half-height in pixels
+Marker shape: two independently controlled radial glow points (red PDoA, cyan TDoA)
 Active buzzer output: AR2/U13, AXI-Lite base 0x43CA0000, one-shot at FCLK3 100 MHz
 Active buzzer pulse default: 5 ms (500000 FCLK3 cycles); command is not periodic
 Active buzzer registers: command 0x00, width 0x04, status 0x08, start tick 0x0C/0x10
